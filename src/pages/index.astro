@@ -5,6 +5,9 @@ import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import EntryTags from '../components/EntryTags.astro';
 
+// 内部链接统一带子路径前缀（本站部署在 /escape-guide/），Astro 不会自动改写硬编码 href。
+const B = import.meta.env.BASE_URL;
+
 const entries = await getCollection('escape');
 
 const chapters = [...new Set(entries.map((e) => e.data.chapter))].sort((a, b) =>
@@ -37,7 +40,7 @@ const evidence = [...new Set(entries.map((e) => e.data.evidence))].sort();
         <ul class="guide-list">
           {items.map((e) => (
             <li class="guide-item">
-              <a class="guide-link" href={`/${e.id}/`}>
+              <a class="guide-link" href={`${B}${e.id}/`}>
                 {e.data.title}
               </a>
               <EntryTags
@@ -57,6 +60,6 @@ const evidence = [...new Set(entries.map((e) => e.data.evidence))].sort();
 
   <p class="lede" style="margin-top:2.5rem;font-size:0.85rem">
     统计：{entries.length} 条 · 口径 {metrics.join(' / ')} · 证据等级 {evidence.join(' / ')} ·
-    <a href="/about/">格式与来源规则</a>
+    <a href={`${B}about/`}>格式与来源规则</a>
   </p>
 </Base>

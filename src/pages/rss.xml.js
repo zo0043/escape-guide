@@ -2,6 +2,9 @@ import rss from '@astrojs/rss';
 import { getCollection } from 'astro:content';
 
 export async function GET(context) {
+  // link 必须自带子路径前缀：@astrojs/rss 会把 link 当绝对路径与 site 合并，
+  // 若写成 '/条目名/'，new URL 会丢掉 site 里的 /escape-guide/ 前缀。
+  const B = import.meta.env.BASE_URL;
   const entries = await getCollection('escape');
   return rss({
     title: 'A股散户逃生指南',
@@ -13,7 +16,7 @@ export async function GET(context) {
       .map((e) => ({
         title: e.data.title,
         description: e.data.description,
-        link: `/${e.id}/`,
+        link: `${B}${e.id}/`,
         pubDate: e.data.checked ?? e.data.date ?? new Date(),
         categories: [e.data.chapter, `证据${e.data.evidence}`, `口径${e.data.metric}`],
       }))

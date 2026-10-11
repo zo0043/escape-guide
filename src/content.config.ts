@@ -22,8 +22,8 @@ const escape = defineCollection({
   loader: glob({
     pattern: '**/*.md',
     base: './src/content/escape',
-    // 自定义 id：复刻 Hugo urlize 的中文行为，让 /条目名/ 的形状与旧站一致
-    // （旧站是 /escape/条目名/，这里只少一层 escape/ 前缀）。
+    // 自定义 id：复刻 Hugo urlize 的中文行为，让条目 URL 的形状与旧站一致
+    // （旧站 /escape/条目名/，现在部署在主站子路径下，即 /escape-guide/条目名/）。
     generateId: ({ entry }) => slugify(entry.replace(/\.md$/i, '').split('/').pop()),
   }),
   schema: z.object({

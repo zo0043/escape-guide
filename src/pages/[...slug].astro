@@ -14,6 +14,8 @@ export async function getStaticPaths() {
 const all = normalizeCollection(await getCollection('escape'));
 const backlinksBySlug = computeBacklinksFrom(all);
 
+const B = import.meta.env.BASE_URL;
+
 const { entry } = Astro.props;
 const { Content } = await render(entry);
 const d = entry.data;
@@ -50,7 +52,7 @@ const backlinks = backlinksBySlug.get(entry.id) ?? [];
         <ul>
           {backlinks.map((b) => (
             <li>
-              <a href={`/${b.slug}/`}>{b.title}</a>
+              <a href={`${B}${b.slug}/`}>{b.title}</a>
             </li>
           ))}
         </ul>

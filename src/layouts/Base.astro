@@ -8,6 +8,9 @@ interface Props {
 
 const { title, description } = Astro.props;
 const siteTitle = 'A股散户逃生指南';
+// 本站部署在主站域名的子路径下（/escape-guide/），所有内部链接必须带上前缀。
+// Astro 不会自动改写硬编码的 href，漏一个就是 404——所以统一走 BASE。
+const B = import.meta.env.BASE_URL;
 const pageTitle = title ? `${title} · ${siteTitle}` : siteTitle;
 const desc =
   description ??
@@ -21,7 +24,7 @@ const desc =
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{pageTitle}</title>
     <meta name="description" content={desc} />
-    <link rel="icon" type="image/png" href="/zo0043.png" />
+    <link rel="icon" type="image/png" href={`${B}zo0043.png`} />
     <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
     <link
       rel="alternate"
@@ -38,10 +41,10 @@ const desc =
   <body>
     <header class="site-header">
       <div class="wrap">
-        <a class="site-title" href="/">{siteTitle}</a>
+        <a class="site-title" href={B}>{siteTitle}</a>
         <nav class="site-nav">
-          <a href="/">目录</a>
-          <a href="/about/">关于本站</a>
+          <a href={B}>目录</a>
+          <a href={`${B}about/`}>关于本站</a>
           <a href="https://blog.zero43.top/">主站博客</a>
         </nav>
       </div>

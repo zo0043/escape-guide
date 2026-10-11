@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://escape.zero43.top/sitemap-index.xml
+Sitemap: https://blog.zero43.top/escape-guide/sitemap-index.xml

@@ -1,7 +1,6 @@
 ---
 import { getCollection, render } from 'astro:content';
 import Base from '../layouts/Base.astro';
-import EntryTags from '../components/EntryTags.astro';
 import { computeBacklinksFrom, normalizeCollection } from '../lib/entries.mjs';
 
 export async function getStaticPaths() {
@@ -21,29 +20,72 @@ const { Content } = await render(entry);
 const d = entry.data;
 
 const backlinks = backlinksBySlug.get(entry.id) ?? [];
+
+// 五节名是闸门强制常量，id 由 rehype 插件（headings.mjs）按同一映射挂上
+const TOC = [
+  ['怎么做', 'howto'],
+  ['说人话', 'plain'],
+  ['收益', 'gain'],
+  ['来源', 'source'],
+  ['备注', 'notes'],
+];
 ---
 
 <Base title={d.title} description={d.description}>
-  <article>
-    <header class="entry-header">
-      <h1>{d.title}</h1>
-      <p class="entry-meta">
-        {d.chapter}
-        {d.checked && <> · 来源核对于 {d.checked.toISOString().slice(0, 10)}</>}
-      </p>
-      <EntryTags
-        cost={d.cost}
-        gain={d.gain}
-        metric={d.metric}
-        evidence={d.evidence}
-        disputed={d.disputed}
-      />
-    </header>
+  <div class="entry-layout">
+    <article>
+      <header class="entry-header">
+        <h1>{d.title}</h1>
+        <p class="entry-meta">
+          {d.chapter}
+          {d.checked && <> · 来源核对于 {d.checked.toISOString().slice(0, 10)}</>}
+        </p>
+      </header>
 
-    <div class="entry-body">
-      <Content />
-    </div>
-  </article>
+      <!-- 数据条：成本/收益/口径/证据/核对 = 规格表（标签行由数据条取代） -->
+      <dl class="data-strip">
+        <div class="ds">
+          <dt>成本 · 钱</dt>
+          <dd class="num">{d.cost.money}</dd>
+        </div>
+        <div class="ds">
+          <dt>成本 · 时间</dt>
+          <dd>{d.cost.time}</dd>
+        </div>
+        <div class="ds">
+          <dt>成本 · 毅力</dt>
+          <dd>{d.cost.will}</dd>
+        </div>
+        <div class={`ds${d.gain === '大' ? ' hl' : ''}`}>
+          <dt>收益</dt>
+          <dd class={d.gain === '大' ? 'v-accent' : ''}>{d.gain}</dd>
+        </div>
+        <div class="ds">
+          <dt>口径</dt>
+          <dd>{d.metric}</dd>
+        </div>
+        <div class={`ds${d.evidence === 'A' ? ' hl' : ''}`}>
+          <dt>证据</dt>
+          <dd class={`num${d.evidence === 'A' ? ' v-accent' : ''}`}>{d.evidence}</dd>
+        </div>
+        <div class="ds">
+          <dt>核对日期</dt>
+          <dd class="num">{d.checked ? d.checked.toISOString().slice(0, 10) : '—'}</dd>
+        </div>
+      </dl>
+
+      <div class="entry-body">
+        <Content />
+      </div>
+    </article>
+
+    <nav class="entry-toc" aria-label="页内目录">
+      <div class="toc-title">本页</div>
+      {TOC.map(([label, id]) => (
+        <a href={`#${id}`}>{label}</a>
+      ))}
+    </nav>
+  </div>
 
   {
     backlinks.length > 0 && (

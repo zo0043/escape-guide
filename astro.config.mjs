@@ -1,6 +1,8 @@
 import { defineConfig } from 'astro/config';
+import { unified } from '@astrojs/markdown-remark';
 import sitemap from '@astrojs/sitemap';
 import wikilinks from './src/lib/wikilinks.mjs';
+import entryHeadings from './src/lib/headings.mjs';
 import { loadEntries, makeIndex } from './src/lib/entries.mjs';
 
 // A股散户逃生指南
@@ -30,9 +32,15 @@ export default defineConfig({
   trailingSlash: 'always', // 与旧站一致：/条目名/ 而非 /条目名
   build: { format: 'directory' }, // 产出 /条目名/index.html
   markdown: {
-    // BASE 显式传进插件：wikilinks.mjs 由本配置文件（Node 上下文）导入，
-    // 那里拿不到 import.meta.env，不能依赖 Vite 注入的 BASE_URL。
-    remarkPlugins: [wikilinks(linkIndex, BASE)],
+    // Astro 7.3 起 remark/rehype 插件走 unified()（旧的 markdown.remarkPlugins 已弃用）。
+    // BASE 显式传进 wikilinks：本配置文件由 Node 上下文加载，拿不到 Vite 注入的
+    // import.meta.env，依赖它会静默生成 "undefined条目名/" 这种死链。
+    // entryHeadings：h2 挂 id（页内目录锚点）+ 四段式标记换结构块 class，
+    // 只动 class/属性、不动文字——verify 脚本的文本断言不受影响。
+    processor: unified({
+      remarkPlugins: [wikilinks(linkIndex, BASE)],
+      rehypePlugins: [entryHeadings],
+    }),
     shikiConfig: { theme: 'github-dark' },
   },
   integrations: [sitemap()],

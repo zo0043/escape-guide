@@ -45,6 +45,32 @@ export default function entryHeadings() {
       if (id) node.properties = { ...(node.properties ?? {}), id };
     });
 
+    // 1b. 每一节（h2 起、到下一个 h2 前）包进 <section class="mod mod-<id>">，
+    // 让「怎么做/说人话/收益/来源/备注」五个节各自成为一种视觉模块，而不是同一种正文。
+    // 只加包裹节点，不改动原有节点的内容与顺序。
+    if (Array.isArray(tree.children)) {
+      const out = [];
+      let current = null;
+      for (const child of tree.children) {
+        const isH2 = child.type === 'element' && child.tagName === 'h2';
+        if (isH2) {
+          const id = child.properties?.id;
+          current = {
+            type: 'element',
+            tagName: 'section',
+            properties: { class: ['mod', id ? `mod-${id}` : 'mod-generic'] },
+            children: [child],
+          };
+          out.push(current);
+        } else if (current) {
+          current.children.push(child);
+        } else {
+          out.push(child); // h2 之前的导语/前言保持原位
+        }
+      }
+      tree.children = out;
+    }
+
     // 2. 四段式标记：p 的第一个子节点是 strong 且文字命中 → 结构化
     visit(tree, 'element', (node) => {
       if (node.tagName !== 'p' || !Array.isArray(node.children)) return;

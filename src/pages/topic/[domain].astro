@@ -1,0 +1,100 @@
+---
+// 域页（主题页）：章 → 条之间的中间层。
+// 对标 Our World in Data 的 topic page：先给这个域在解决什么问题，再给条目清单（带一句话要点）。
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('escape');
+  const domains = [...new Set(entries.map((e) => e.data.chapter))].sort((a, b) => a.localeCompare(b, 'zh'));
+  return domains.map((chapter) => {
+    const num = chapter.split(' ')[0];
+    return { params: { domain: num }, props: { chapter } };
+  });
+}
+
+const B = import.meta.env.BASE_URL;
+const entries = await getCollection('escape');
+
+const ESSENCE = {
+  '01': '这一域回答：市场到底是什么。钱从哪来、谁在跟你交易、历史上极端行情里发生过什么。看不懂这一域，后面所有的技巧都只是赌运气。',
+  '02': '这一域回答：哪些做法被长期验证过、哪些只是听起来有道理。原则背后都有数学或数据，条目尽量把它挖出来。',
+  '03': '这一域回答：你为什么会做错。偏差不是「不够聪明」，而是人脑的默认设置——认识它、给它设防，比发誓「我要理性」有用得多。',
+  '04': '这一域回答：规则怎么保护你、被坑了找谁、红线在哪里。散户最大的劣势是信息，最大的优势是规则对所有人一样。',
+  '05': '这一域回答：怎么不犯致命的错。亏 50% 要赚 100% 才回本——防守不是保守，是算术。',
+  '06': '这一域回答：怎么自己查证。别人给的结论会过期、会骗人，会自己查的人不用信任何人。',
+};
+
+const CHECK = {
+  '01': ['我能说清自己买的东西靠什么赚钱吗？', '我知道当前市场处在什么位置吗（估值/情绪/资金）？'],
+  '02': ['我用的方法是被长期验证的，还是最近听说很灵的？', '我能说出这个方法的失效条件吗？'],
+  '03': ['最近三次亏损，是判断错还是情绪驱动的操作？', '我有没有在亏损时加过仓？'],
+  '04': ['我知道被上市公司坑了该走哪条官方路径吗？', '我知道自己账户里每项费用的规则吗？'],
+  '05': ['我的仓位大小是算出来的，还是「感觉差不多」？', '我有没有一笔「亏了会影响生活」的钱在市场里？'],
+  '06': ['我上一次查规则是自己去官网查的，还是看别人转述的？', '我知道自己持仓公司的退市风险指标要去哪查吗？'],
+};
+
+const { chapter } = Astro.props;
+const num = chapter.split(' ')[0];
+const name = chapter.split(' ').slice(1).join(' ');
+const items = entries
+  .filter((e) => e.data.chapter === chapter)
+  .sort((a, b) => (a.data.weight ?? 0) - (b.data.weight ?? 0));
+
+const domains = [...new Set(entries.map((e) => e.data.chapter))].sort((a, b) => a.localeCompare(b, 'zh'));
+const nA = items.filter((e) => e.data.evidence === 'A').length;
+---
+
+<Base title={`${name} · 域`} description={ESSENCE[num]}>
+  <section class="topic-head">
+    <p class="entry-crumb">第 {num} 域 · {items.length} 条 · A 级证据 {nA} 条</p>
+    <h1 class="hero-title">{name}</h1>
+    <p class="topic-essence">{ESSENCE[num]}</p>
+  </section>
+
+  <section class="section">
+    <p class="section-label">ENTRIES</p>
+    <h2 class="section-title">本域条目</h2>
+    <ul class="topic-list">
+      {
+        items.map((e) => (
+          <li>
+            <a class="topic-item-title" href={`${B}${e.id}/`}>
+              {e.data.title}
+            </a>
+            {e.data.description && <p class="topic-item-kicker">{e.data.description}</p>}
+            <p class="topic-item-meta">
+              收益 {e.data.gain} · 口径 {e.data.metric} · 证据 {e.data.evidence}
+              {e.data.disputed ? ' · 有争议' : ''}
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <section class="section">
+    <p class="section-label">SELF CHECK</p>
+    <h2 class="section-title">读完之后，问自己两个问题</h2>
+    <div class="entry-body">
+      <ul>
+        {CHECK[num].map((q) => <li>{q}</li>)}
+      </ul>
+      <p>两个都答不上来，说明这一域还需要再读一遍——不是背条目，是能用自己的话回答。</p>
+    </div>
+  </section>
+
+  <nav class="topic-nav" aria-label="域间导航">
+    <a class="chip" href={`${B}#domains`}>← 六域地图</a>
+    {
+      domains.map((c) => {
+        const n = c.split(' ')[0];
+        return (
+          <a class="chip" href={`${B}topic/${n}/`} aria-current={n === num ? 'page' : undefined}>
+            {c}
+          </a>
+        );
+      })
+    }
+  </nav>
+</Base>

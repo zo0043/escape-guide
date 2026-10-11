@@ -8,15 +8,12 @@ import { glob } from 'astro/loaders';
 import { slugify } from './lib/slug.mjs';
 
 const CHAPTERS = [
-  '01 先认清你在跟谁玩',
-  '02 A股祖训',
-  '03 投资理论',
-  '04 你的大脑会骗你',
-  '05 别做那些事',
-  '06 被坑了怎么办',
-  '07 规则里的保护条款',
-  '08 动手查证',
-  '09 投资大师', // 2026-10-11 新增（与 scripts/check-content.mjs 的白名单同步）
+  '01 市场与周期',
+  '02 理念与理论',
+  '03 人性与心理',
+  '04 规则与制度',
+  '05 风险与防守',
+  '06 实务与查证',
 ];
 
 const escape = defineCollection({
@@ -48,6 +45,16 @@ const escape = defineCollection({
     disputed: z.boolean().default(false),
     /** 来源核对日期；引用监管文件的条目必填 */
     checked: z.coerce.date().optional(),
+    // ── 一屏速览字段（2026-10-11 界面重做新增，全部可选）──
+    // 条目页顶部四张事实卡：有这些字段就用它们，没有就回落到 成本/收益/证据 结构化事实。
+    /** 一句话结论：这条到底在说什么（列表页 kicker 与条目页结论卡共用） */
+    lede: z.string().optional(),
+    /** 什么时候用：这条适用的处境（一句话） */
+    when: z.string().optional(),
+    /** 关键数字：最能说明问题的那一个数（含口径） */
+    keyNumber: z.string().optional(),
+    /** 最大风险：用错这条会怎么死（一句话） */
+    maxRisk: z.string().optional(),
     tags: z.array(z.string()).default([]),
   }),
 });

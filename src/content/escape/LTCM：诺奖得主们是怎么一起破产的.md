@@ -3,8 +3,8 @@ title: "LTCM：诺奖得主们是怎么一起破产的"
 aliases: ["Long-Term Capital Management", "LTCM 1998", "长期资本管理公司破产"]
 date: 2026-10-11
 description: "失败大师档案（集体版）：1998 年 LTCM 崩塌，以美联储 1998 年度报告为一手源，附「杠杆怎么吃掉安全垫」的可复算算术——模型全对 + 杠杆全错 = 归零。"
-chapter: "09 投资大师"
-weight: 12
+chapter: "02 理念与理论"
+weight: 23
 cost: { money: "0", time: "中", will: "否" }
 gain: "中"
 metric: "收益"

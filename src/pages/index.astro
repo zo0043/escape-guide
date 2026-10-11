@@ -1,93 +1,199 @@
 ---
-// 首页即目录：hero（站名 + 定位 + 数据徽章）→ 章节导航（sticky）→ 8 章卡片网格。
-// 徽章数字全部构建期从集合算出，不硬编码（内容加减条目，首页自动跟上）。
+// 首页 = 杂志式入口：Hero（承诺 + 数字墙 + 信任线）→ 三入口（按处境）→ 六域地图 → 折叠全目录 → 来源规则。
+// 所有数字与清单都在构建期从集合算出，不硬编码。
 import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
-import EntryTags from '../components/EntryTags.astro';
 
 const B = import.meta.env.BASE_URL;
-
 const entries = await getCollection('escape');
 
-const chapters = [...new Set(entries.map((e) => e.data.chapter))].sort((a, b) =>
-  a.localeCompare(b, 'zh'),
-);
+// 域串形如「02 理念与理论」：编号 + 名称拆开渲染
+const domains = [...new Set(entries.map((e) => e.data.chapter))].sort((a, b) => a.localeCompare(b, 'zh'));
 
-const byChapter = chapters.map((chapter) => {
-  // 章节串形如「02 A股祖训」：编号 + 名称拆开渲染
+const DOMAIN_ESSENCE = {
+  '01': '市场怎么运转、钱从哪来、极端行情里到底发生过什么。',
+  '02': '被验证过的原则、大师的赚钱逻辑，以及背后的数学。',
+  '03': '你会怎么被骗：偏差、情绪、群体，以及能练的动作。',
+  '04': '规则怎么保护你、被坑了找谁、红线在哪里。',
+  '05': '不犯致命的错：钱的性质、仓位、不做清单。',
+  '06': '动手查：公司、牌照、规则、数据从哪里来。',
+};
+
+const byDomain = domains.map((chapter) => {
   const [num, ...rest] = chapter.split(' ');
-  return {
-    num,
-    name: rest.join(' '),
-    chapter,
-    items: entries
-      .filter((e) => e.data.chapter === chapter)
-      .sort((a, b) => (a.data.weight ?? 0) - (b.data.weight ?? 0)),
-  };
+  const items = entries
+    .filter((e) => e.data.chapter === chapter)
+    .sort((a, b) => (a.data.weight ?? 0) - (b.data.weight ?? 0));
+  return { num, name: rest.join(' '), chapter, items, essence: DOMAIN_ESSENCE[num] ?? '' };
 });
 
+// 按标题取条目链接：标题必须存在，否则构建期直接报错（不静默漏链）
+const byTitle = (title) => {
+  const hit = entries.find((e) => e.data.title === title);
+  if (!hit) throw new Error(`首页路径引用了不存在的条目标题：${title}`);
+  return `${B}${hit.id}/`;
+};
+
+// 三条处境路径（每条 4 步，指向真实条目）
+const PATHS = [
+  {
+    num: 'PATH 01',
+    title: '我还没入市',
+    desc: '先把钱的性质和底线定下来，再决定要不要进场——顺序反了，后面全是补救。',
+    steps: ['先分清三种钱：保命钱、闲钱、搏钱', '凯利公式：仓位下注多少', '博格：别试图跑赢市场，定投宽基指数', 'A股长期收益与回撤'],
+  },
+  {
+    num: 'PATH 02',
+    title: '我已被套',
+    desc: '先处理手上的仓位，再谈回本。最常见的二次伤害是「摊平」和「等反弹」。',
+    steps: ['买入之前先写下「错了怎么办」', '利弗莫尔：错了就砍，永远不摊平输家', '期望值与破产：仓位是算术问题', '行情差的时候，最好的策略是观望'],
+  },
+  {
+    num: 'PATH 03',
+    title: '我要建体系',
+    desc: '从「钱从哪来」和「人性怎么骗你」两头夹击，比背口诀有用。',
+    steps: ['钱从哪来：投资大师的七种收益来源', '先搞清楚：你的交易对手是谁', '损失厌恶：亏一笔比赚一笔难受得多', '频繁交易的换手成本'],
+  },
+];
+
 const nA = entries.filter((e) => e.data.evidence === 'A').length;
-const nLoss = entries.filter((e) => e.data.metric === '亏损').length;
-const metrics = [...new Set(entries.map((e) => e.data.metric))].sort();
-const evidence = [...new Set(entries.map((e) => e.data.evidence))].sort();
+const nDisputed = entries.filter((e) => e.data.disputed).length;
+const nDomains = domains.length;
 ---
 
 <Base>
-  <div class="hero">
-    <h1>A股散户逃生指南</h1>
-    <p class="hero-sub">
-      把「别亏钱」拆成一条条能照着做的清单。每条写清<b>什么时候用</b>、<b
-        >怎么做</b
-      >、<b>做完得到什么</b>、<b>怎么算过关</b>，并标注成本、收益口径与证据等级。
-      没有一手出处的条目会如实写明——<b>打不开的链接等于没有来源</b>。
+  <section class="hero">
+    <p class="hero-kicker">A 股散户逃生指南</p>
+    <h1 class="hero-title">先别亏钱，<br />再谈赚钱。</h1>
+    <p class="hero-lede">
+      这里没有荐股、没有预测、没有「稳赚」。有的是把「别亏钱」拆成一条条<b>能照着做</b>的清单：
+      每条写清<b>什么时候用</b>、<b>怎么做</b>、<b>做完得到什么</b>、<b>怎么算过关</b>，
+      并标注成本、收益口径与证据等级。
     </p>
-    <div class="hero-badges">
-      <span class="badge"><b>{entries.length}</b> 条</span>
-      <span class="badge"><b>{chapters.length}</b> 章</span>
-      <span class="badge"><b>{nA}</b> 条 A 级证据</span>
-      <span class="badge"><b>{nLoss}</b> 条亏损口径</span>
+    <div class="hero-cta">
+      <a class="cta cta-primary" href="#start">从哪开始 →</a>
+      <a class="cta" href="#domains">六域地图</a>
+      <a class="cta" href={`${B}about/`}>来源规则</a>
     </div>
-  </div>
 
-  <nav class="chapter-nav" aria-label="章节导航">
-    <div class="wrap-index">
-      {byChapter.map(({ num, name, chapter }) => (
-        <a href={`#ch-${num}`}>{num} {name}</a>
-      ))}
+    <div class="stat-wall">
+      <div>
+        <span class="stat-num">{entries.length}</span>
+        <span class="stat-label">条可执行条目</span>
+      </div>
+      <div>
+        <span class="stat-num">{nDomains}</span>
+        <span class="stat-label">个认知域</span>
+      </div>
+      <div>
+        <span class="stat-num">{nA}</span>
+        <span class="stat-label">条 A 级一手证据</span>
+      </div>
+      <div>
+        <span class="stat-num">{nDisputed}</span>
+        <span class="stat-label">条如实标注争议</span>
+      </div>
     </div>
-  </nav>
 
-  {
-    byChapter.map(({ num, name, chapter, items }) => (
-      <section class="guide-chapter" id={`ch-${num}`}>
-        <header class="guide-chapter-head">
-          <span class="chapter-num">{num}</span>
-          <h2 class="guide-chapter-title">{name}</h2>
-          <span class="chapter-count num">{items.length} 条</span>
-        </header>
-        <div class="guide-grid">
-          {items.map((e) => (
-            <article class="guide-card">
-              <a class="guide-link" href={`${B}${e.id}/`}>
-                {e.data.title}
-              </a>
-              {e.data.description && <p class="guide-desc">{e.data.description}</p>}
-              <EntryTags
-                cost={e.data.cost}
-                gain={e.data.gain}
-                metric={e.data.metric}
-                evidence={e.data.evidence}
-                disputed={e.data.disputed}
-              />
-            </article>
-          ))}
-        </div>
-      </section>
-    ))
-  }
+    <p class="trust-line">
+      本站的来源规则只有一条：<b>打不开的链接等于没有来源</b>。核不到的数字不写，有争议的结论标争议，
+      拿不到的口径就写「无公开统计」——宁可少写一条，不编一个数字。
+    </p>
+  </section>
 
-  <p class="hero-sub" style="margin-top:2.5rem;font-size:0.85rem">
-    统计：{entries.length} 条 · 口径 {metrics.join(' / ')} · 证据等级 {evidence.join(' / ')} ·
-    <a href={`${B}about/`}>格式与来源规则</a>
-  </p>
+  <section class="section" id="start">
+    <p class="section-label">START HERE</p>
+    <h2 class="section-title">你现在是什么处境？</h2>
+    <p class="section-intro">同一个市场，三种人该做的事完全不同。选一条路径，按顺序读四条。</p>
+    <div class="start-here">
+      {
+        PATHS.map((p) => (
+          <div class="start-card">
+            <span class="sc-num">{p.num}</span>
+            <a class="sc-title" href={byTitle(p.steps[0])}>{p.title}</a>
+            <span class="sc-desc">{p.desc}</span>
+            <span class="sc-path">
+              <b>路径</b>：{p.steps.map((s, i) => (
+                <>
+                  {i > 0 && ' · '}
+                  <a href={byTitle(s)}>{s.split('：')[0]}</a>
+                </>
+              ))}
+            </span>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section" id="domains">
+    <p class="section-label">SIX DOMAINS</p>
+    <h2 class="section-title">六域地图</h2>
+    <p class="section-intro">
+      一个完整的投资体系要回答六件事：市场怎么运转、理念对不对、人性怎么骗你、规则怎么保护你、
+      怎么不犯致命的错、以及怎么自己动手查证。
+    </p>
+    <div class="domain-map">
+      {
+        byDomain.map((d) => (
+          <a class="domain-card" href={`${B}topic/${d.num}/`}>
+            <span class="dc-num">{d.num}</span>
+            <h3 class="dc-name">{d.name}</h3>
+            <p class="dc-essence">{d.essence}</p>
+            <p class="dc-meta">
+              {d.items.length} 条 · 其中 A 级证据 {d.items.filter((e) => e.data.evidence === 'A').length} 条
+            </p>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section" id="all">
+    <p class="section-label">ALL ENTRIES</p>
+    <h2 class="section-title">全部条目（{entries.length}）</h2>
+    <p class="section-intro">按域折叠。每条下面一句话说明它解决什么问题，标 <b>A</b> 的是有一手来源的条目。</p>
+    <div class="directory">
+      {
+        byDomain.map((d) => (
+          <details class="dom-details">
+            <summary class="dom-summary">
+              <span class="dom-summary-num">{d.num}</span>
+              <span class="dom-summary-name">{d.name}</span>
+              <span class="dom-summary-count">{d.items.length} 条</span>
+              <span class="dom-summary-essence">{d.essence}</span>
+            </summary>
+            <ul class="dir-list">
+              {d.items.map((e) => (
+                <li class="dir-item">
+                  <a class="dir-link" href={`${B}${e.id}/`}>
+                    {e.data.evidence === 'A' && <span class="dir-ev ev-A">A</span>}
+                    {e.data.title}
+                  </a>
+                  {e.data.description && <p class="dir-kicker">{e.data.description}</p>}
+                </li>
+              ))}
+            </ul>
+          </details>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section" id="rules">
+    <p class="section-label">EVIDENCE RULES</p>
+    <h2 class="section-title">本站的来源规则</h2>
+    <p class="section-intro">
+      每条条目的「来源」节都必须交代证据等级。这不是免责声明，是让读者知道这个数字能信到什么程度。
+    </p>
+    <div class="entry-body">
+      <ul>
+        <li><b>A 级</b>：有一手来源（原始文件、官方公告、可复算的数据接口），并写明核对日期。</li>
+        <li><b>B 级</b>：只有书目/二手引用，条目里明确写「原文未逐条核对」。</li>
+        <li><b>C 级</b>：史料与流传说法，标注为不可核或存在争议。</li>
+        <li><b>争议标记</b>：研究结论相互冲突、或数据口径存在重大分歧的条目会显式标注。</li>
+      </ul>
+      <p>完整的格式规范、来源要求与免责说明见 <a href={`${B}about/`}>关于本站</a>。</p>
+    </div>
+  </section>
 </Base>

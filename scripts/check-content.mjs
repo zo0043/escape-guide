@@ -18,6 +18,8 @@
 //   8. 「备注」至少 3 个列表项——适用前提 / 已知反例 / 关联条目 / 有效期
 //   9. 出度双链 ≥ 2（唯一目标）——手册感 = 网络感，54% 条目零反链的教训
 //      （7–9 使存量 41 条全部判红，构建在批次改写完成前预期失败——刻意的）
+//  10. 「怎么做」汉字数 ≥350、11.「说人话」汉字数 ≥150——防回退下限
+//      （阈值按批次 C 实测最小值 529/262 取下，余量 34%/43%；只数汉字）
 //
 // 用法：node scripts/check-content.mjs [--canary] [--only <文件名特征串>]
 //   --canary  故意让一项断言失败，用来证明这个闸门真的能判红（退出码应为 1）
@@ -174,6 +176,24 @@ for (const e of entries) {
     const outTargets = new Set(extractWikilinkTargets(e.body).map((t) => normalizeKey(t)));
     if (outTargets.size < 2) {
       fail(f, `出度双链 ${outTargets.size} 个（v2 要求 ≥2，按任务书链接地图执行，可加不可减）`);
+    }
+  }
+
+  // 10. v2 防回退：「怎么做」汉字数 ≥350（只数汉字，标点/数字/表格符号不计）
+  //     阈值依据：批次 C（04 章 12 条）实测最小 529，余量 34%
+  {
+    const howtoCjk = (howto.match(/[\u4e00-\u9fff]/g) || []).length;
+    if (howtoCjk < 350) {
+      fail(f, `「怎么做」汉字数 ${howtoCjk}（v2 防回退要求 ≥350；只数汉字，标点与数字不计）`);
+    }
+  }
+
+  // 11. v2 防回退：「说人话」汉字数 ≥150（只数汉字）
+  //     阈值依据：批次 C 实测最小 262，余量 43%；spec 的「≥150 字」按汉字口径执行
+  {
+    const plainCjk = ((sections.get('说人话') ?? '').match(/[\u4e00-\u9fff]/g) || []).length;
+    if (plainCjk < 150) {
+      fail(f, `「说人话」汉字数 ${plainCjk}（v2 要求 ≥150；只数汉字，标点与数字不计）`);
     }
   }
 }

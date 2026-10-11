@@ -1,0 +1,37 @@
+---
+// 条目标签行：成本 / 收益 / 证据等级。
+// 数据取 front matter 的结构化字段而不是正文里的 HTML 注释——
+// 结构化才好让构建期闸门机检，渲染也统一，不会因作者写法不同而漂移。
+interface Props {
+  cost?: { money: string; time: string; will: string };
+  gain?: string;
+  metric?: string;
+  evidence?: string;
+  disputed?: boolean;
+}
+const { cost, gain, metric, evidence, disputed } = Astro.props;
+---
+
+{
+  (cost || gain || evidence) && (
+    <p class="entry-tags">
+      {cost && (
+        <span class="tag tag-cost">
+          成本 钱={cost.money} 时间={cost.time} 毅力={cost.will}
+        </span>
+      )}
+      {gain && (
+        <span class="tag tag-gain">
+          收益 {gain}
+          {metric ? `（口径：${metric}）` : ''}
+        </span>
+      )}
+      {evidence && (
+        <span class="tag tag-evidence">
+          证据 {evidence}
+          {disputed ? '（争议）' : ''}
+        </span>
+      )}
+    </p>
+  )
+}

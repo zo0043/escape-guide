@@ -1,0 +1,21 @@
+{
+  "name": "escape-guide",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "A股散户逃生指南 —— 独立站点（2026-10-11 从 blog.zero43.top 的 /escape/ 拆分）",
+  "scripts": {
+    "dev": "astro dev",
+    "check": "node scripts/check-content.mjs",
+    "check:canary": "node scripts/check-content.mjs --canary",
+    "build": "node scripts/check-content.mjs && astro build",
+    "build:soft": "astro build",
+    "preview": "astro preview"
+  },
+  "dependencies": {
+    "@astrojs/markdown-remark": "^7.3.2",
+    "@astrojs/rss": "^4.0.19",
+    "@astrojs/sitemap": "^3.7.4",
+    "astro": "^7.3.8"
+  }
+}

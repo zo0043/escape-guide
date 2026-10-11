@@ -1,0 +1,64 @@
+name: Deploy Escape Guide to Pages
+
+# A股散户逃生指南 · 独立站点
+# 2026-10-11 从 blog.zero43.top 的 /escape/ 拆分而来，独立仓库、独立部署。
+#
+# 注意：`npm run build` 会先跑 scripts/check-content.mjs（条目格式闸门）再 astro build。
+# 闸门非 0 退出就没有 dist，也就没有部署——这是刻意的，格式坏掉的条目不该上线。
+# 想跳过闸门只验证渲染，本地用 `npm run build:soft`，但 CI 永远走 build。
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.12.0 # Astro 7 要求 >=22.12.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: 条目格式闸门
+        run: node scripts/check-content.mjs
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

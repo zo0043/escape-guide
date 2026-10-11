@@ -1,0 +1,60 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import EntryTags from '../components/EntryTags.astro';
+import { computeBacklinksFrom, normalizeCollection } from '../lib/entries.mjs';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('escape');
+  return entries.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+// 反链从集合数据算，**不读磁盘**：Astro 构建时本模块会被打包，
+// 依赖 import.meta.url 的路径会失效，导致反链静默变 0。
+const all = normalizeCollection(await getCollection('escape'));
+const backlinksBySlug = computeBacklinksFrom(all);
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const d = entry.data;
+
+const backlinks = backlinksBySlug.get(entry.id) ?? [];
+---
+
+<Base title={d.title} description={d.description}>
+  <article>
+    <header class="entry-header">
+      <h1>{d.title}</h1>
+      <p class="entry-meta">
+        {d.chapter}
+        {d.checked && <> · 来源核对于 {d.checked.toISOString().slice(0, 10)}</>}
+      </p>
+      <EntryTags
+        cost={d.cost}
+        gain={d.gain}
+        metric={d.metric}
+        evidence={d.evidence}
+        disputed={d.disputed}
+      />
+    </header>
+
+    <div class="entry-body">
+      <Content />
+    </div>
+  </article>
+
+  {
+    backlinks.length > 0 && (
+      <aside class="backlinks">
+        <h2 class="backlinks-title">反链（{backlinks.length}）</h2>
+        <ul>
+          {backlinks.map((b) => (
+            <li>
+              <a href={`/${b.slug}/`}>{b.title}</a>
+            </li>
+          ))}
+        </ul>
+      </aside>
+    )
+  }
+</Base>

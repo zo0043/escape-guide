@@ -1,0 +1,62 @@
+---
+// 首页即目录：独立站不再需要「博客首页 + 分区列表」两层，
+// 落地页直接就是按章节分组的 41 条清单——手册该有的样子。
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+import EntryTags from '../components/EntryTags.astro';
+
+const entries = await getCollection('escape');
+
+const chapters = [...new Set(entries.map((e) => e.data.chapter))].sort((a, b) =>
+  a.localeCompare(b, 'zh'),
+);
+
+const byChapter = chapters.map((chapter) => ({
+  chapter,
+  items: entries
+    .filter((e) => e.data.chapter === chapter)
+    .sort((a, b) => (a.data.weight ?? 0) - (b.data.weight ?? 0)),
+}));
+
+const metrics = [...new Set(entries.map((e) => e.data.metric))].sort();
+const evidence = [...new Set(entries.map((e) => e.data.evidence))].sort();
+---
+
+<Base>
+  <p class="lede">
+    {entries.length} 条能照着做的清单，分 {chapters.length} 章。每条写清<b>什么时候用</b>、<b
+      >怎么做</b
+    >、<b>做完得到什么</b>、<b>怎么算过关</b>，并标注成本、收益口径与证据等级。
+    没有一手出处的条目会如实写明——<b>打不开的链接等于没有来源</b>。
+  </p>
+
+  {
+    byChapter.map(({ chapter, items }) => (
+      <section class="guide-chapter">
+        <h2 class="guide-chapter-title">{chapter}</h2>
+        <ul class="guide-list">
+          {items.map((e) => (
+            <li class="guide-item">
+              <a class="guide-link" href={`/${e.id}/`}>
+                {e.data.title}
+              </a>
+              <EntryTags
+                cost={e.data.cost}
+                gain={e.data.gain}
+                metric={e.data.metric}
+                evidence={e.data.evidence}
+                disputed={e.data.disputed}
+              />
+              {e.data.description && <p class="guide-desc">{e.data.description}</p>}
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))
+  }
+
+  <p class="lede" style="margin-top:2.5rem;font-size:0.85rem">
+    统计：{entries.length} 条 · 口径 {metrics.join(' / ')} · 证据等级 {evidence.join(' / ')} ·
+    <a href="/about/">格式与来源规则</a>
+  </p>
+</Base>

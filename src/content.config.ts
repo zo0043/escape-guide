@@ -16,6 +16,7 @@ const CHAPTERS = [
   '06 被坑了怎么办',
   '07 规则里的保护条款',
   '08 动手查证',
+  '09 投资大师', // 2026-10-11 新增（与 scripts/check-content.mjs 的白名单同步）
 ];
 
 const escape = defineCollection({

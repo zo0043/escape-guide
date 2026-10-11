@@ -13,8 +13,16 @@
 //   5. front matter：chapter 白名单、metric 词表、cost/gain/evidence 取值、description 必填
 //   6. 双链目标可解析（解析不到只警告：旧站里「未收录」是合法的渲染状态）
 //
-// 用法：node scripts/check-content.mjs [--canary]
+// v2 扩充（2026-10-11，详见 docs/content-v2-spec.md）：
+//   7. 「怎么做」必含 **算例** 段——可复算的假设案例，把「写下/算一遍」落到具体数字
+//   8. 「备注」至少 3 个列表项——适用前提 / 已知反例 / 关联条目 / 有效期
+//   9. 出度双链 ≥ 2（唯一目标）——手册感 = 网络感，54% 条目零反链的教训
+//      （7–9 使存量 41 条全部判红，构建在批次改写完成前预期失败——刻意的）
+//
+// 用法：node scripts/check-content.mjs [--canary] [--only <文件名特征串>]
 //   --canary  故意让一项断言失败，用来证明这个闸门真的能判红（退出码应为 1）
+//   --only    只检查文件名包含该串的文件（批次改写时逐条自查用；
+//             双链索引仍按全量条目构建，不受过滤影响）
 import {
   loadEntries,
   splitSections,
@@ -25,6 +33,18 @@ import {
 import { normalizeKey } from '../src/lib/slug.mjs';
 
 const CANARY = process.argv.includes('--canary');
+
+// --only <特征串> 或 --only=<特征串>：只检查文件名包含该串的文件
+const argv = process.argv.slice(2);
+const onlyIdx = argv.indexOf('--only');
+const ONLY =
+  onlyIdx >= 0
+    ? argv[onlyIdx + 1]
+    : (argv.find((a) => a.startsWith('--only=')) ?? '').slice(7) || null;
+if (onlyIdx >= 0 && !argv[onlyIdx + 1]) {
+  console.error('✗ --only 需要参数（文件名特征串）');
+  process.exit(1);
+}
 
 const SECTIONS = ['怎么做', '说人话', '收益', '来源', '备注'];
 const HOWTO_MARKERS = ['**什么时候用**', '**步骤**', '**做完你会得到**', '**怎么算过关**'];
@@ -65,9 +85,12 @@ if (entries.length === 0) {
   process.exit(1);
 }
 
+let checked = 0;
 for (const e of entries) {
   const f = e.file;
   const d = e.data ?? {};
+  if (ONLY && !f.includes(ONLY)) continue;
+  checked += 1;
 
   // ---- front matter ----
   if (!d.title) fail(f, '缺 title');
@@ -104,6 +127,10 @@ for (const e of entries) {
         fail(f, `「怎么做」缺小标记 ${marker}（四段必须齐全：什么时候用 / 步骤 / 做完你会得到 / 怎么算过关）`);
       }
     }
+    // 2b. v2 算例：可复算的假设案例（docs/content-v2-spec.md）
+    if (!howto.includes('**算例**')) {
+      fail(f, '「怎么做」缺 **算例** 段（v2 必选：一个可复算的假设案例，带具体数字）');
+    }
   }
 
   // 3. 「收益」三档制
@@ -133,13 +160,29 @@ for (const e of entries) {
   } catch (err) {
     fail(f, `双链索引构建失败：${err.message}`);
   }
+
+  // 8. v2「备注」至少 3 个列表项：适用前提 / 已知反例 / 关联条目 / 有效期
+  if (sections.has('备注')) {
+    const noteItems = (sections.get('备注').match(/^\s*[-*]\s+/gm) || []).length;
+    if (noteItems < 3) {
+      fail(f, `「备注」列表项 ${noteItems} 个（v2 要求 ≥3：适用前提/已知反例/关联条目/有效期）`);
+    }
+  }
+
+  // 9. v2 出度双链 ≥ 2（唯一目标数；链接地图见各批次任务书）
+  {
+    const outTargets = new Set(extractWikilinkTargets(e.body).map((t) => normalizeKey(t)));
+    if (outTargets.size < 2) {
+      fail(f, `出度双链 ${outTargets.size} 个（v2 要求 ≥2，按任务书链接地图执行，可加不可减）`);
+    }
+  }
 }
 
 if (CANARY) {
   fail('__canary__', '这是金丝雀：故意注入的失败，用来证明闸门真的能判红');
 }
 
-const total = entries.length;
+const total = ONLY ? checked : entries.length;
 if (problems.length === 0) {
   console.log(`✅ 条目格式闸门通过：${total} 条全部合规`);
   if (warnings.length) {

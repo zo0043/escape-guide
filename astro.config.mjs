@@ -38,7 +38,14 @@ export default defineConfig({
     // entryHeadings：h2 挂 id（页内目录锚点）+ 四段式标记换结构块 class，
     // 只动 class/属性、不动文字——verify 脚本的文本断言不受影响。
     processor: unified({
-      remarkPlugins: [wikilinks(linkIndex, BASE)],
+      // 【2026-10-12 接线修复】unified 的插件协议是「先调 factory(options) 拿
+      // transformer，再拿 tree 调 transformer」。旧写法 `wikilinks(linkIndex, BASE)`
+      // 在配置加载时就执行了工厂，把**裸 transformer** 传进插件数组，于是 unified
+      // 又把它当工厂、以 undefined 调了一遍，`walk(undefined)` 静默返回——构建全绿，
+      // 但全站双链一直是字面 [[…]] 文本（线上可证）。
+      // 「未收录 span=0」的 verify 检查在「根本没有 span」时同样为 0，抓不住这种
+      // 假绿灯，故 verify 脚本另加正向断言（至少一页含 class="wl"）。
+      remarkPlugins: [[({ index, base }) => wikilinks(index, base), { index: linkIndex, base: BASE }]],
       rehypePlugins: [entryHeadings],
     }),
     shikiConfig: { theme: 'github-dark' },

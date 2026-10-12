@@ -5,6 +5,7 @@
 import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import tables from '../../data/compare.json';
+import { makeEntryIndex } from '../../lib/entries.mjs';
 
 export async function getStaticPaths() {
   return tables.tables.map((t) => ({ params: { table: t.slug }, props: { t } }));
@@ -13,8 +14,29 @@ export async function getStaticPaths() {
 const B = import.meta.env.BASE_URL;
 const { t } = Astro.props;
 const entries = await getCollection('escape');
-const byTitle = new Map(entries.map((e) => [e.data.title, e]));
+// C6/S4：按标题**或别名**取条目。全库 49 个标题用半角冒号、47 个用全角冒号，
+// compare.json 的 src 两种写法都出现过——只认 title 会把另一种静默丢成 undefined，
+// 争议小标和来源链接一起消失，而页面照常渲染、不报错。
+const byTitle = makeEntryIndex(entries);
 const evClass = (ev: string) => `ev ev-${ev}`;
+
+// U2/M6：disputed 构建期从内容集合自动带出（不手填进 compare.json）——
+// 每行的来源条目标了争议，表内证据格渲染「争议」小标。
+// 与 about.md:64 的规则同源：A/B 级条目存在反方证据时置 disputed: true。
+const rowDisputed = (r: any) => {
+  const entry = byTitle.get(r.src);
+  return entry ? Boolean(entry.data.disputed) : false;
+};
+
+// N5：表 → 所属域的映射（与 topic/[domain].astro 的 RELATED_TABLES 同源，
+// 此处为反向：crashes→01、masters/philosophy→02、biases→03）。
+const TABLE_DOMAIN: Record<string, string> = {
+  crashes: '01',
+  masters: '02',
+  philosophy: '02',
+  biases: '03',
+};
+const domainNum = TABLE_DOMAIN[t.slug];
 ---
 
 <Base title={`${t.title} · 对照表`} description={t.lede}>
@@ -41,14 +63,17 @@ const evClass = (ev: string) => `ev ev-${ev}`;
                 <tr>
                   {r.c.map((cell: string, i: number) =>
                     i === 0 ? (
-                      <th scope="row" class="row-head">
+                      <th scope="row" class="row-head" data-label={t.cols[0]}>
                         {entry ? <a href={`${B}${entry.id}/`}>{cell}</a> : cell}
                       </th>
                     ) : (
-                      <td>{cell}</td>
+                      <td data-label={t.cols[i]}>{cell}</td>
                     )
                   )}
-                  <td class={evClass(r.ev)}>{r.ev}</td>
+                  <td class={evClass(r.ev)} data-label="证据">
+                    {r.ev}
+                    {rowDisputed(r) && <span class="ev-flag">争议</span>}
+                  </td>
                 </tr>
               );
             })
@@ -60,7 +85,12 @@ const evClass = (ev: string) => `ev ev-${ev}`;
   </section>
 
   <nav class="topic-nav" aria-label="对照表之间">
-    <a class="chip" href={`${B}#tables`}>← 全部对照表</a>
+    {
+      domainNum && (
+        <a class="chip" href={`${B}topic/${domainNum}/`}>← 来自 {domainNum} 域</a>
+      )
+    }
+    <a class="chip" href={`${B}#tables`}>全部对照表</a>
     {
       tables.tables.map((x) => (
         <a class="chip" href={`${B}compare/${x.slug}/`} aria-current={x.slug === t.slug ? 'page' : undefined}>

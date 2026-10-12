@@ -73,8 +73,9 @@ const nA = items.filter((e) => e.data.evidence === 'A').length;
             </a>
             {e.data.description && <p class="topic-item-kicker">{e.data.description}</p>}
             <p class="topic-item-meta">
-              收益 {e.data.gain} · 口径 {e.data.metric} · 证据 {e.data.evidence}
+              收益档位 {e.data.gain} · 量纲 {e.data.metric} · 证据 {e.data.evidence}
               {e.data.disputed ? ' · 有争议' : ''}
+              {(e.data as any).layer ? <> · <span class="layer-tag">{(e.data as any).layer}</span></> : null}
             </p>
           </li>
         ))

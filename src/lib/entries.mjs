@@ -94,17 +94,58 @@ export function normalizeCollection(entries) {
   }));
 }
 
+/**
+ * 一条条目参与「标题 / 别名」匹配的全部键（标题在前，别名等价）。
+ *
+ * 同时认两种条目形状，免得每个调用点各写一遍解构：
+ *   · 归一化后的纯对象（normalizeCollection / loadEntries 的产物）：{ title, aliases, slug }
+ *   · Astro 集合条目（getCollection('escape') 的产物）：{ data: { title, aliases }, id }
+ */
+function entryKeys(e) {
+  const title = e?.data?.title ?? e?.title;
+  const aliases = e?.data?.aliases ?? e?.aliases ?? [];
+  return [title, ...aliases].filter(Boolean);
+}
+
 /** 「标题 / 别名 → slug」索引；标题与别名等价参与匹配。 */
 export function makeIndex(entries) {
   const index = new Map();
   for (const e of entries) {
-    for (const k of [e.title, ...(e.aliases ?? [])].filter(Boolean)) {
+    for (const k of entryKeys(e)) {
       const key = normalizeKey(k);
       const prev = index.get(key);
       if (prev && prev !== e.slug) {
         throw new Error(`双链索引冲突：「${k}」同时指向 /${prev}/ 与 /${e.slug}/`);
       }
       index.set(key, e.slug);
+    }
+  }
+  return index;
+}
+
+/**
+ * 「标题 / 别名 → 条目」索引；标题与别名等价参与匹配，**返回条目本身**。
+ *
+ * 给页面按标题取条目用（对照表 src、首页处境路径…）。与 makeIndex 同源同口径，
+ * 区别只是值是条目而不是 slug——免得页面各自 `new Map(entries.map(e => [e.data.title, e]))`，
+ * 那种写法只认 title，一条别名就取不到（C6/S4 的半角/全角冒号问题正是从这儿漏进来的：
+ * compare.json 有 37 行 src 用半角冒号，全角写法会被静默丢成 undefined）。
+ *
+ * 同样吃两种条目形状（见 entryKeys 的说明）。
+ */
+export function makeEntryIndex(entries) {
+  const index = new Map();
+  for (const e of entries) {
+    const id = e?.slug ?? e?.id;
+    for (const k of entryKeys(e)) {
+      const key = normalizeKey(k);
+      const prev = index.get(key);
+      if (prev && prev.id !== id) {
+        throw new Error(
+          `标题/别名索引冲突：「${k}」同时指向 /${prev.id}/ 与 /${id}/`,
+        );
+      }
+      index.set(key, e);
     }
   }
   return index;

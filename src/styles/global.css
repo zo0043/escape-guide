@@ -15,6 +15,8 @@
   --accent: #9c3d10;
   --accent-soft: #f8ece2;
   --accent-bright: #c2410c;
+  /* 压在 accent 上的文字色：亮色主题用白（对 #9c3d10 = 6.8:1） */
+  --on-accent: #ffffff;
   --ok: #2f6b4f;
   --warn: #8a6a12;
   --risk: #a12a1f;
@@ -40,6 +42,9 @@
     --accent: #e0a03a;
     --accent-soft: #2a2419;
     --accent-bright: #f0b429;
+    /* 压在 accent 上的文字色：暗色主题 accent 是琥珀，白字仅 2.27:1，
+       改暗底字（对 #e0a03a = 7.99:1，过 AA） */
+    --on-accent: #14161a;
     --ok: #7fb894;
     --warn: #d8bb62;
     --risk: #e08b80;
@@ -70,6 +75,7 @@ a:hover { color: var(--accent); }
   display: flex;
   align-items: center;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
   backdrop-filter: saturate(140%) blur(10px);
   border-bottom: 1px solid var(--rule);
 }
@@ -84,6 +90,11 @@ a:hover { color: var(--accent); }
 .site-nav { margin-left: auto; display: flex; gap: 1.2rem; font-size: 0.86rem; }
 .site-nav a { text-decoration: none; color: var(--fg-dim); }
 .site-nav a:hover { color: var(--accent); }
+/* 首页页内锚点（E7）：窄屏只保留「开始/六域」两个，其余收起 */
+@media (max-width: 860px) {
+  .site-nav { gap: 0.9rem; }
+  .site-nav .nav-anchor:not(.nav-anchor-pri) { display: none; }
+}
 .site-footer {
   margin-top: 6rem;
   padding: 2rem 0 3rem;
@@ -91,6 +102,39 @@ a:hover { color: var(--accent); }
   font-size: 0.85rem;
   color: var(--fg-dim);
 }
+/* 页脚两行：导航行 + 免责小字（S6；措辞与 about.md:93 的免责声明一致） */
+.footer-line { margin: 0; }
+.footer-fine { margin: 0.6rem 0 0; font-size: 0.76rem; color: var(--fg-dim); opacity: 0.85; max-width: var(--measure); }
+/* 首页 stat 墙的 A 级可点（N2：数字墙 → A 级索引入口） */
+.stat-link { text-decoration: none; color: inherit; display: block; }
+.stat-link:hover .stat-num { color: var(--accent); }
+/* 别名索引页（U8） */
+.alias-group { margin-top: 1.8rem; }
+.alias-group-title { font-size: 0.95rem; color: var(--fg-dim); font-weight: 600; margin: 0 0 0.6rem; }
+.alias-list { list-style: none; padding: 0; margin: 0; }
+.alias-item { padding: 0.55rem 0; border-bottom: 1px solid var(--rule); font-size: 0.9rem; }
+.alias-entry { font-weight: 600; text-decoration: none; color: var(--fg); }
+.alias-entry:hover { color: var(--accent); }
+.alias-kicker { margin-left: 0.5rem; font-size: 0.72rem; color: var(--fg-dim); }
+.alias-chip {
+  display: inline-block;
+  font-size: 0.76rem;
+  color: var(--fg-dim);
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  padding: 0.02rem 0.55rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.alias-chip:hover { color: var(--accent); border-color: var(--accent); }
+.a-list { list-style: none; padding: 0; margin: 0; }
+.a-item { padding: 0.7rem 0; border-bottom: 1px solid var(--rule); }
+.a-title { font-weight: 600; text-decoration: none; color: var(--fg); }
+.a-title:hover { color: var(--accent); }
+.a-num { display: block; margin-top: 0.25rem; font-size: 0.8rem; color: var(--fg-dim); line-height: 1.6; }
+.a-num-empty { opacity: 0.85; }
+/* 404 多出口（N3） */
+.nf-exits { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; margin-top: 1.4rem; }
 
 /* ============ 首屏 ============ */
 .hero { padding: 4.2rem 0 2.6rem; }
@@ -131,7 +175,7 @@ a:hover { color: var(--accent); }
 }
 .cta:hover { border-color: var(--accent); color: var(--accent); }
 .cta-primary { background: var(--fg); border-color: var(--fg); color: var(--bg); }
-.cta-primary:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+.cta-primary:hover { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .stat-wall {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -265,6 +309,9 @@ details[open] > summary.dom-summary::after { content: "－"; }
   vertical-align: 0.08em;
 }
 .dir-ev.ev-A { color: var(--ok); border-color: var(--ok); }
+/* 证据三级：A 一手（绿）/ B 定性可核（实线中性）/ C 民间共识（虚线淡字） */
+.dir-ev.ev-B { color: var(--fg); border-color: var(--rule-strong); font-weight: 600; }
+.dir-ev.ev-C { color: var(--fg-dim); border-style: dashed; }
 
 /* ============ 条目页 ============ */
 .entry-crumb {
@@ -290,6 +337,22 @@ details[open] > summary.dom-summary::after { content: "－"; }
   color: var(--fg-dim);
 }
 .entry-meta { margin: 0.9rem 0 0; font-size: 0.82rem; color: var(--fg-dim); }
+/* 「又称」行（N1-a）：别名在条目页可见——用户真实记忆词有入口 */
+.entry-aliases { margin: 0.35rem 0 0; font-size: 0.85rem; color: var(--fg-dim); }
+.entry-aliases::before { content: "又称："; font-weight: 600; color: var(--fg); }
+/* 层级标签（t9 layer 字段：理念|执行|档案|工具；未填时模板不渲染） */
+.layer-tag {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-family: var(--mono);
+  color: var(--fg-dim);
+  border: 1px solid var(--rule-strong);
+  border-radius: 999px;
+  padding: 0.02rem 0.5rem;
+  margin-left: 0.45rem;
+  vertical-align: 0.12em;
+  white-space: nowrap;
+}
 .quick-cards {
   display: grid;
   grid-template-columns: 1fr;
@@ -298,13 +361,42 @@ details[open] > summary.dom-summary::after { content: "－"; }
   background: var(--rule);
   border: 1px solid var(--rule);
 }
-@media (min-width: 700px) { .quick-cards { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 900px) { .quick-cards { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 640px) { .quick-cards { grid-template-columns: repeat(2, 1fr); } }
+/* U3：4 卡固定——宽屏四列；1024–1279 仍两列，避免每卡过窄 */
+@media (min-width: 1280px) { .quick-cards { grid-template-columns: repeat(4, 1fr); } }
 .quick-card { background: var(--bg-card); padding: 1rem 1.05rem 1.05rem; }
 .qc-label { display: block; font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.12em; color: var(--fg-dim); }
 .qc-value { margin: 0.45rem 0 0; font-size: 0.93rem; line-height: 1.7; }
 .qc-value.is-num { font-family: var(--mono); font-size: 1.45rem; font-weight: 600; letter-spacing: -0.01em; }
 .qc-value.is-risk { color: var(--risk); }
+/* U4/E1：关键数字两层——大数字（首个数字串）在上，完整口径小字在下。
+   实测 keyNumber 并非都「约定写在最前」，故小字保留完整原文（不折断散文），
+   大数字只作视觉钩子。 */
+.qc-value .qc-figure { display: block; font-size: 1.45rem; font-weight: 600; letter-spacing: -0.01em; }
+.qc-value .qc-note {
+  display: block;
+  margin-top: 0.35rem;
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.65;
+  color: var(--fg-dim);
+}
+/* 争议小标：速览卡证据等级格 + 对照表证据格共用一套视觉 */
+.qc-flag, .ev-flag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  font-family: var(--sans);
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--warn);
+  border: 1px solid var(--warn);
+  border-radius: 2px;
+  padding: 0.02rem 0.3rem;
+  vertical-align: 0.18em;
+  white-space: nowrap;
+}
 .section-chips {
   position: sticky;
   top: var(--header-h);
@@ -315,6 +407,7 @@ details[open] > summary.dom-summary::after { content: "－"; }
   padding: 0.65rem 0;
   margin: 0;
   background: color-mix(in srgb, var(--bg) 90%, transparent);
+  -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--rule);
   scrollbar-width: none;
@@ -344,6 +437,15 @@ details[open] > summary.dom-summary::after { content: "－"; }
 .entry-body h3 { font-size: 1.06rem; margin: 1.8rem 0 0.6rem; }
 .entry-body ul, .entry-body ol { padding-left: 1.3rem; }
 .entry-body li { margin: 0.4rem 0; }
+/* 任务清单（GFM 原生复选框）：去掉列表圆点，复选框与圆点不再双现 */
+.entry-body ul.contains-task-list { list-style: none; padding-left: 0.15rem; }
+.entry-body ul.contains-task-list > li { list-style: none; }
+.entry-body .task-list-item { margin: 0.55rem 0; }
+.entry-body .task-list-item input[type="checkbox"] {
+  accent-color: var(--accent);
+  margin-right: 0.5rem;
+  vertical-align: -0.05em;
+}
 .entry-body strong { font-weight: 600; }
 .entry-body code {
   font-family: var(--mono);
@@ -363,6 +465,18 @@ details[open] > summary.dom-summary::after { content: "－"; }
   line-height: 1.7;
 }
 .entry-body pre code { background: none; border: none; padding: 0; }
+/* U6/E6：shiki 双主题的暗色切换。astro.config.mjs 配了
+   themes: { light: 'github-light', dark: 'github-dark' }，构建期 inline style
+   带 --shiki-dark* 变量（亮色值直写、暗色值走变量）；这里补
+   prefers-color-scheme media query 把暗色变量应用上去——零 JS。
+   !important 必需：inline style 的亮色值优先级高于样式表规则。 */
+@media (prefers-color-scheme: dark) {
+  .astro-code,
+  .astro-code span {
+    color: var(--shiki-dark) !important;
+    background-color: var(--shiki-dark-bg) !important;
+  }
+}
 .entry-body blockquote {
   margin: 1.4rem 0;
   padding: 0.2rem 0 0.2rem 1.1rem;
@@ -408,6 +522,34 @@ details[open] > summary.dom-summary::after { content: "－"; }
 .mod-notes h2 { border-bottom: none; font-size: 1.2rem; }
 .mod-notes ul { padding-left: 1.1rem; }
 .mod-notes li { font-size: 0.93rem; }
+/* t5 类集合比对标记的缺口：headings.mjs 会输出 mod-howto（五节之一）却无规则。
+   给最克制的一条区分：顶部发丝线（「怎么做」是条目的主节）。 */
+.mod-howto { border-top: 1px solid var(--rule); padding-top: 0.6rem; }
+/* E10：业绩验证（大师条目第六节）——与「收益」节同族但用三线头上沿区分，
+   且条目页 TOC 有条件 chip（见 [...slug].astro）。 */
+.mod-perf { border-top: 3px double var(--rule-strong); padding-top: 1.2rem; }
+/* 兜底：未进 H2_IDS 映射的 h2（当前无，防将来新增节无声产出的类） */
+.mod-generic { border-left: 2px solid var(--accent); padding-left: 1.1rem; }
+
+/* ============ 双链（wikilinks） ============ */
+/* 正文里的 [[…]] 渲染为 <a class="wl">：细下划线 + hover 出强调色，
+   与普通文字可辨但不抢正文（杂志风克制）。亮/暗均走 token，自动跟随。 */
+.wl {
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+  cursor: pointer;
+}
+.wl:hover { color: var(--accent); text-decoration-color: var(--accent); }
+/* 未收录目标：about.md 承诺的「橙色虚线」标记（潜伏规则，当前 0 处使用）。
+   须放在 .wl 之后——span 同时带 wl/wl-missing 两个类，靠源顺序覆盖下划线。 */
+.wl-missing {
+  text-decoration: none;
+  color: var(--accent);
+  border-bottom: 1px dashed var(--accent);
+  cursor: help;
+}
 
 /* ============ 域页 ============ */
 .topic-head { padding: 3.4rem 0 0; }
@@ -454,6 +596,80 @@ details[open] > summary.dom-summary::after { content: "－"; }
   border-top: 1px solid var(--rule-strong);
   border-bottom: 1px solid var(--rule-strong);
 }
+/* ============ 窄屏表格（U5/E4+E5，零 JS） ============
+   三件套，按断点分工：
+   · ≤640px：卡片化——构建期给每个格挂了 data-label（列名），
+     CSS 把 table/tr/td 转块级，td::before 显示列名，横滑消失。
+     对照表全部卡片化；条目正文表仅 ≥5 列的（table-cards，插件判定）。
+   · 641–1180px：仍横滑的阶段——首列 sticky 保行身份 + 右缘内阴影提示可滑。
+   （>1180px 7 列可容纳，横滑自然消失。） */
+@media (max-width: 640px) {
+  .table-scroll { border-top: none; border-bottom: none; }
+  /* —— 对照表 —— */
+  .compare, .compare thead, .compare tbody, .compare tr, .compare th, .compare td { display: block; }
+  .compare thead { display: none; } /* 列名改由每格 data-label 显示 */
+  .compare tbody tr {
+    border: 1px solid var(--rule);
+    margin: 0 0 0.8rem;
+    padding: 0.7rem 0.85rem;
+  }
+  .compare tbody th, .compare tbody td {
+    border: none;
+    padding: 0.22rem 0;
+    text-align: left;
+    width: auto;
+    white-space: normal;
+  }
+  .compare tbody td::before, .compare tbody th::before {
+    content: attr(data-label);
+    display: inline-block;
+    min-width: 4.2em;
+    margin-right: 0.6em;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--fg-dim);
+    vertical-align: 0.1em;
+  }
+  .compare .row-head { font-size: 1.02rem; }
+  .compare .row-head::before { content: none; } /* 行首即卡片标题，不重复列名 */
+  .compare .col-ev, .compare .ev { width: auto; text-align: left; }
+  /* —— 条目正文 ≥5 列表（table-cards）—— */
+  .entry-body table.table-cards, .entry-body table.table-cards thead,
+  .entry-body table.table-cards tbody, .entry-body table.table-cards tr,
+  .entry-body table.table-cards th, .entry-body table.table-cards td { display: block; }
+  .entry-body table.table-cards thead { display: none; }
+  .entry-body table.table-cards tbody tr {
+    border: 1px solid var(--rule);
+    margin: 0 0 0.8rem;
+    padding: 0.6rem 0.8rem;
+  }
+  .entry-body table.table-cards th, .entry-body table.table-cards td {
+    border: none;
+    padding: 0.22rem 0;
+  }
+  .entry-body table.table-cards td::before, .entry-body table.table-cards th::before {
+    content: attr(data-label);
+    display: inline-block;
+    min-width: 4.2em;
+    margin-right: 0.6em;
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    color: var(--fg-dim);
+    vertical-align: 0.1em;
+  }
+}
+@media (min-width: 641px) and (max-width: 1180px) {
+  /* 首列 sticky：横滑时事件名/条名常驻，行身份不丢失（E4-a） */
+  .compare .row-head {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: var(--bg);
+    border-right: 1px solid var(--rule);
+  }
+  /* 右缘内阴影：提示「右边还有列」（E4-b，纯 CSS、零 JS） */
+  .table-scroll { box-shadow: inset -14px 0 10px -10px var(--rule-strong); }
+}
 .compare { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 .compare thead th {
   font-family: var(--mono);
@@ -486,6 +702,9 @@ details[open] > summary.dom-summary::after { content: "－"; }
   color: var(--fg-dim);
 }
 .compare .ev-A { color: var(--accent); font-weight: 700; }
+/* 证据三级（对照表）：A accent 加粗 / B 正色加粗 / C 淡字 + 虚线 underline */
+.compare .ev-B { color: var(--fg); font-weight: 600; }
+.compare .ev-C { color: var(--fg-dim); text-decoration: underline dotted; text-underline-offset: 0.2em; }
 .compare-foot {
   margin-top: 1.1rem;
   font-size: 0.84rem;
@@ -494,3 +713,29 @@ details[open] > summary.dom-summary::after { content: "－"; }
   max-width: var(--measure);
 }
 .chip-static { color: var(--fg-dim); border-style: dashed; cursor: default; }
+
+/* ============ 可访问性 / 输出层（N4，纯 CSS 增量，零 JS） ============ */
+/* 锚点跳转平滑（scroll-margin-top 已在 .section 上防 sticky 遮挡） */
+html { scroll-behavior: smooth; }
+/* 跳到正文：键盘用户不必先过 sticky 头 */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--accent);
+  padding: 0.5rem 0.9rem;
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+.skip-link:focus { left: 0.6rem; top: 0.6rem; }
+/* 打印（N4）：自查表自称「打印版」——隐头尾与交互装饰，外链展开 URL */
+@media print {
+  .site-header, .site-footer, .section-chips, .backlinks, .quick-cards,
+  .topic-nav, .skip-link, .alias-chip { display: none !important; }
+  body { background: #fff; color: #000; }
+  .entry-body a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.75em; color: #555; }
+  .mod, .section { break-inside: avoid; }
+}

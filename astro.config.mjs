@@ -48,7 +48,11 @@ export default defineConfig({
       remarkPlugins: [[({ index, base }) => wikilinks(index, base), { index: linkIndex, base: BASE }]],
       rehypePlugins: [entryHeadings],
     }),
-    shikiConfig: { theme: 'github-dark' },
+    // 【U6/E6】shiki 双主题：Astro 输出 CSS 变量 + prefers-color-scheme
+    // media query（零 JS），亮色模式代码块不再是深色补丁。
+    // 单主题 github-dark 时 inline style 写死 #24292e 背景，压过
+    // .entry-body pre 的浅色设计（audit-presentation E6）。
+    shikiConfig: { themes: { light: 'github-light', dark: 'github-dark' } },
   },
   integrations: [sitemap()],
 });

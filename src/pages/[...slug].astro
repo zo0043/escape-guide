@@ -2,6 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import { computeBacklinksFrom, normalizeCollection } from '../lib/entries.mjs';
+import { extractWhenSentence } from '../lib/headings.mjs';
 
 export async function getStaticPaths() {
   const entries = await getCollection('escape');
@@ -21,7 +22,8 @@ const d = entry.data;
 
 const backlinks = backlinksBySlug.get(entry.id) ?? [];
 
-// 五节名是闸门强制常量，id 由 rehype 插件（headings.mjs）按同一映射挂上
+// 五节名是闸门强制常量，id 由 rehype 插件（headings.mjs）按同一映射挂上。
+// 「业绩验证」是大师条目独有的第六节——含该节才渲染 chip（E10），id 同映射。
 const TOC = [
   ['怎么做', 'howto'],
   ['说人话', 'plain'],
@@ -29,25 +31,56 @@ const TOC = [
   ['来源', 'source'],
   ['备注', 'notes'],
 ];
+if (/\n##\s*业绩验证/.test(String(entry.body ?? ''))) TOC.push(['业绩验证', 'perf']);
 
 // 域页链接：域串形如「02 理念与理论」
 const domainNum = d.chapter.split(' ')[0];
 const domainName = d.chapter.split(' ').slice(1).join(' ');
 
-// 一屏速览：优先用条目自带的 when/keyNumber/maxRisk；
-// 新内容还没补齐这些字段时，回落到结构化事实（成本/收益/证据），不留空格子。
-// 「一句话结论」不做成卡片——它作为标题下的 standfirst 常驻（entry-lede），避免重复。
+// 层级标签（t9 填 layer 字段：理念|执行|档案|工具；未填时不渲染，优雅回落）
+const layer = (d as any).layer as string | undefined;
+
+// ── 一屏速览：4 卡固定（U3/M5）──────────────────────────────
+// 1. 证据等级（常驻第一卡，含争议小标）
+// 2. 什么时候用：d.when 优先；88 条没有该字段的条目由构建期从正文
+//    **什么时候用** 段提取首句补齐（extractWhenSentence，零内容改动）
+// 3. 关键数字：两层结构（E1）——大数字=首个数字串，口径小字=完整原文。
+//    实测 29 条 keyNumber 并非都「约定写在最前」（如「股价 1720 年…」
+//    「峰谷 −80.4%…」），故不做「切掉前半句」式拆分（会折断散文），
+//    改为「大数字 + 完整口径小字」：大数字是钩子，小字是完整上下文。
+//    无 keyNumber 的条目本卡回落为「收益档位/量纲」（E2 措辞）。
+// 4. 最大风险：无 maxRisk 的条目回落为成本结构化事实。
+const keyFigure = (s: string) => {
+  const m = String(s).match(/[-−+]?\d[\d,]*(?:\.\d+)?\s*[%％]?/);
+  return m ? m[0] : '';
+};
+const whenText = d.when ?? extractWhenSentence(entry.body) ?? '';
+
 const QUICK = [
-  d.when
-    ? { label: '什么时候用', value: d.when }
-    : { label: '成本', value: `钱 ${d.cost.money} · 时间 ${d.cost.time} · 毅力 ${d.cost.will}` },
+  { label: '证据等级', value: `${d.evidence} 级`, num: true, flag: d.disputed ? '有争议' : '' },
+  { label: '什么时候用', value: whenText || '见正文「怎么做」节' },
   d.keyNumber
-    ? { label: '关键数字', value: d.keyNumber, num: true }
-    : { label: '收益', value: `${d.gain}（口径：${d.metric}）` },
+    ? { label: '关键数字', value: d.keyNumber, num: true, figure: keyFigure(d.keyNumber) }
+    : { label: '收益档位', value: `收益档位 ${d.gain} · 量纲 ${d.metric}` },
   d.maxRisk
     ? { label: '最大风险', value: d.maxRisk, risk: true }
-    : { label: '证据等级', value: `${d.evidence} 级${d.disputed ? '（有争议）' : ''}`, num: true },
-].filter((c) => c.value);
+    : { label: '成本', value: `钱 ${d.cost.money} · 时间 ${d.cost.time} · 毅力 ${d.cost.will}` },
+];
+
+// 反链为空时展示「同域相关」（E9）：同 chapter 按 weight 相邻优先取 3 条，剔除自身。
+// 纯集合数据、构建期计算，不读磁盘。
+const sameDomain =
+  backlinks.length === 0
+    ? all
+        .filter((e) => e.data.chapter === d.chapter && e.slug !== entry.id)
+        .sort(
+          (a, b) =>
+            Math.abs((a.data.weight ?? 0) - (d.weight ?? 0)) -
+              Math.abs((b.data.weight ?? 0) - (d.weight ?? 0)) ||
+            (a.data.weight ?? 0) - (b.data.weight ?? 0),
+        )
+        .slice(0, 3)
+    : [];
 ---
 
 <Base title={d.title} description={d.description}>
@@ -61,7 +94,9 @@ const QUICK = [
       <p class="entry-meta">
         {d.checked && <>来源核对于 {d.checked.toISOString().slice(0, 10)}</>}
         {d.disputed && <> · <b>本站标注：结论存在争议</b></>}
+        {layer && <> · <span class="layer-tag">{layer}</span></>}
       </p>
+      {d.aliases?.length > 0 && <p class="entry-aliases">又称：{d.aliases.join(' · ')}</p>}
     </header>
 
     <div class="quick-cards">
@@ -69,7 +104,17 @@ const QUICK = [
         QUICK.map((c) => (
           <div class="quick-card">
             <span class="qc-label">{c.label}</span>
-            <p class={`qc-value${c.num ? ' is-num' : ''}${c.risk ? ' is-risk' : ''}`}>{c.value}</p>
+            {c.figure ? (
+              <p class="qc-value is-num">
+                <span class="qc-figure">{c.figure}</span>
+                <span class="qc-note">{c.value}</span>
+              </p>
+            ) : (
+              <p class={`qc-value${c.num ? ' is-num' : ''}${c.risk ? ' is-risk' : ''}`}>
+                {c.value}
+                {c.flag && <span class="qc-flag">{c.flag}</span>}
+              </p>
+            )}
           </div>
         ))
       }
@@ -92,6 +137,21 @@ const QUICK = [
           {backlinks.map((b) => (
             <li>
               <a href={`${B}${b.slug}/`}>{b.title}</a>
+            </li>
+          ))}
+        </ul>
+      </aside>
+    )
+  }
+
+  {
+    sameDomain.length > 0 && (
+      <aside class="backlinks">
+        <h2 class="backlinks-title">同域相关（{domainName}）</h2>
+        <ul>
+          {sameDomain.map((e) => (
+            <li>
+              <a href={`${B}${e.slug}/`}>{e.title}</a>
             </li>
           ))}
         </ul>

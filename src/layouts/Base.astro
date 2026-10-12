@@ -4,9 +4,11 @@ import '../styles/global.css';
 interface Props {
   title?: string;
   description?: string;
+  /** 仅首页传：sticky 页头里渲染页内锚点（开始/六域/对照表/全部条目，E7） */
+  anchors?: boolean;
 }
 
-const { title, description } = Astro.props;
+const { title, description, anchors } = Astro.props;
 const siteTitle = 'A股散户逃生指南';
 // 本站部署在主站域名的子路径下（/escape-guide/），所有内部链接必须带上前缀。
 // Astro 不会自动改写硬编码的 href，漏一个就是 404——所以统一走 BASE。
@@ -15,6 +17,9 @@ const pageTitle = title ? `${title} · ${siteTitle}` : siteTitle;
 const desc =
   description ??
   '把「别亏钱」拆成一条条能照着做的清单：每条写清什么时候用、怎么做、做完得到什么、怎么算过关，以及成本和证据等级。';
+// 主题色跟随系统（N4）：与 global.css 的 --bg 两主题一致
+const themeLight = '#fbfaf6';
+const themeDark = '#14161a';
 ---
 
 <!doctype html>
@@ -24,6 +29,8 @@ const desc =
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{pageTitle}</title>
     <meta name="description" content={desc} />
+    <meta name="theme-color" content={themeLight} media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content={themeDark} media="(prefers-color-scheme: dark)" />
     <link rel="icon" type="image/png" href={`${B}zo0043.png`} />
     <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
     <link
@@ -43,22 +50,40 @@ const desc =
     {import.meta.env.PROD && <meta name="robots" content="index,follow" />}
   </head>
   <body>
+    <a class="skip-link" href="#main">跳到正文</a>
     <header class="site-header">
       <div class="wrap">
         <a class="site-title" href={B}>{siteTitle}</a>
         <nav class="site-nav">
+          {
+            anchors && (
+              <>
+                <a class="nav-anchor nav-anchor-pri" href="#start">开始</a>
+                <a class="nav-anchor nav-anchor-pri" href="#domains">六域</a>
+                <a class="nav-anchor" href="#tables">对照表</a>
+                <a class="nav-anchor" href="#all">全部条目</a>
+              </>
+            )
+          }
           <a href={B}>目录</a>
+          <a href={`${B}aliases/`}>别名索引</a>
           <a href={`${B}about/`}>关于本站</a>
           <a href="https://blog.zero43.top/">主站博客</a>
         </nav>
       </div>
     </header>
-    <main class="wrap">
+    <main class="wrap" id="main">
       <slot />
     </main>
     <footer class="site-footer">
       <div class="wrap">
-        🧭 先别亏钱。主站：<a href="https://blog.zero43.top/">blog.zero43.top</a>
+        <p class="footer-line">
+          🧭 先别亏钱。主站：<a href="https://blog.zero43.top/">blog.zero43.top</a> ·
+          <a href={`${B}rss.xml`}>RSS 订阅</a> · <a href={`${B}aliases/`}>别名索引</a>
+        </p>
+        <p class="footer-fine">
+          本站做信息整理与自我备忘，不是投资建议，也不构成法律意见；规则类条目请以官方最新发布为准，涉及具体纠纷请咨询执业律师。
+        </p>
       </div>
     </footer>
   </body>

@@ -21,6 +21,26 @@
 //  10. 「怎么做」汉字数 ≥350、11.「说人话」汉字数 ≥150——防回退下限
 //      （阈值按批次 C 实测最小值 529/262 取下，余量 34%/43%；只数汉字）
 //
+// v3 扩充（2026-10-12，详见 audit-synthesis-20261012.md §5「闸门的系统性盲区」）：
+//   上面 1–13 条有一个共同盲区：**只查「标记存在」，不查「语义正确」与「渲染结果」**。
+//   2026-10-12 整合审计实测：16 条必须改里 7 条的根因都是这一条——六段标记齐但顺序错、
+//   front matter metric 合法但正文行内口径逃出词表、三段散文段过字数下限但缺 spec 要求的
+//   段首命名、A/B 级有反方证据却没 disputed、裸 URL 后紧跟全角标点被自动链接吞成坏地址。
+//   14–19 即按这个盲区补齐（分级：error 阻断 / warning 不阻断，理由逐条注明）。
+//  14. 「怎么做」六段顺序固定（error）
+//  15. 收益节行内口径 ∈ 五值词表且 === front matter metric（error）
+//  16. 「说人话」三段段首标签齐全（error）
+//  17. 反方证据线索 vs disputed 漏标（warning：关键词是代理，须人工复核）
+//  18. 裸 URL 后紧跟全角标点（error：会被 GFM 自动链接吞进 href，点了就是 404）
+//  19. 「无公开统计」的读法消歧（warning：口径不存在 vs 本次未取得）
+//
+// v4 扩充（2026-10-12，t14 —— t9/C5+C7 交付时提的待办 #2）：
+//  20. layer 必填 + 四值枚举（error）
+//      —— content.config.ts 里 layer 是 required z.enum，但闸门一直不校验它。
+//      新增条目漏填/写错只在 astro build 的 zod 阶段才报 `Invalid enum value`，
+//      那时已进构建流程、报错也不指出四值可选。t12 要写 5 条新条目，先补这道闸。
+//      实测基线：117/117 条全部合规（理念 42 / 档案 38 / 执行 32 / 工具 5），零误报。
+//
 // 用法：node scripts/check-content.mjs [--canary] [--only <文件名特征串>]
 //   --canary  故意让一项断言失败，用来证明这个闸门真的能判红（退出码应为 1）
 //   --only    只检查文件名包含该串的文件（批次改写时逐条自查用；
@@ -50,6 +70,56 @@ if (onlyIdx >= 0 && !argv[onlyIdx + 1]) {
 
 const SECTIONS = ['怎么做', '说人话', '收益', '来源', '备注'];
 const HOWTO_MARKERS = ['**什么时候用**', '**步骤**', '**做完你会得到**', '**怎么算过关**'];
+// v3-14：段顺序固定（docs/content-v2-spec.md:22-26）。**算例** 与 **常见错** 也纳入
+// 顺序断言——旧闸门只查「存在」，实测「大师的业绩怎么写」把 **算例** 排在 **步骤**
+// 之前仍全绿。**常见错** 按 spec 是「建议写、不机检」，故不存在时不参与顺序比较。
+const SECTION_ORDER = [
+  '**什么时候用**',
+  '**步骤**',
+  '**算例**',
+  '**常见错**',
+  '**做完你会得到**',
+  '**怎么算过关**',
+];
+// v3-16：「说人话」三段段首命名（docs/content-v2-spec.md:37-39）。旧闸门只数汉字、
+// 只禁阿拉伯数字，实测 23 条是三个无标签散文段——段落数都是 3、字数都过下限，全绿。
+const PLAIN_LABELS = ['是什么', '为什么发生', '什么时候不成立'];
+// v3-17：反方证据线索（about.md:64：A/B 级条目若存在反方证据，有则置 disputed: true）。
+// 这是**关键词代理**，必然有假阳性（方法论讨论、检查清单模板、「暂未找到反例」都会
+// 命中），所以定级 warning 不阻断——它的作用是把人引到条目前人工复核，不是自动判红。
+const DISPUTED_CUES = ['批评', '反方', '复现失败', '自承'];
+// v3-19：「无公开统计」的两种读法（本站自己的两处权威定义：1993到1994:111 与
+// 2008全球金融危机:67——前者「公开渠道确认不存在」、后者「有口径但本机取不到」）。
+// 词汇表取自这两处定义 + 全库实测用法，不是凭空造的。比对范围是全正文：该词 162 处
+// 分布在怎么做 85 / 来源 41 / 收益 22 / 备注 14，两处权威定义也分别在备注与怎么做里。
+const STAT_CUES = [
+  '拿不到', '不存在', '未取得', '取不到', '未核到', '不可比',
+  '没有可复算', '没有统一', '确认不存在', '无可核', '没有拿到', '未在任何',
+];
+// v3-18：裸 URL（无 < > 包裹、无反引号）后紧跟全角标点 → GFM 自动链接不截断，
+// 把标点和后面的中文一起吞进 href——点了就是 404，而这正违反本站立站规则
+// 「打不开的链接等于没有来源」（index.astro:100）。实测 dist 7 处、4 个条目页，
+// 形态如 `2024ltr.pdf（curl` / `index.html，两页均为…` / `fmpxx"（实测`。
+// 修法：URL 改 <URL> 包裹，或在 URL 与标点间加一个空格。
+// 后瞻集合原本只有 （，；：、 与 ["']+（，；：、。t6(C3) 做全量渲染时补上一条实测
+// 缺口：`"URL"。` 这一型当时漏网——**全角句号 `。` 不在 GFM 的 ASCII 尾部修剪集
+// 里**，所以它和后面的中文会整串吞进 href。已用 micromark + gfmAutolinkLiteral
+// 逐型复现（过程与输出见 audit-t13-bare-url-tests.log）：
+//   `URL。`    → href="…foo%E3%80%82%E5%90%8E%E9%9D%A2…"（句号 + 后文全吞）
+//   `"URL"。`  → href="…foo%22%E3%80%82%E5%90%8E…"（引号变 %22、句号 + 后文全吞）
+//   `URL，/、/；`→ 同为 %EF%BC%8C 等（原已覆盖）
+// 故 `。` 同时进两支：紧跟支（裸 URL 后直接是句号）与引号组合支（`"URL"。`）。
+// 仍不含 ）」』——那会误伤 `[文字](URL）」` 这种正常 markdown 链接收尾。
+// 另必须剥代码块/行内代码：全库的 curl 重跑命令都长在反引号里，不剥会误报。
+// ⚠️ 但 `。` 进后瞻会**重新打开**上面这个误报口子：正文 `[文字](URL)」。` 里，URL 后
+// 的 `)」` 都落在 `[^\s<>`]` 允许范围内，懒惰匹配会一路吃到 `。` 上，把正常 markdown
+// 链接判成裸 URL（实测复现，见 audit-t13-bare-url-tests.log）。故在**前瞻**再补
+// `(?<!\]\()`：URL 紧跟 `](` 即 markdown 链接，不判。这样既保住 `"URL"。` / `URL。`
+// 判红，也不误伤 `[文字](URL)」。`；`(URL)。` 这种正文半角括号包 URL 仍照判。
+// 代价（已实测确认可接受）：URL 自身含半角 `)` 且其后紧跟 `。` 时漏判——全库 4 个
+// 含 `)` 的 URL 都在反引号代码块里（curl 命令），本就被剥掉，实际影响 0。
+// 另必须剥代码块/行内代码：全库的 curl 重跑命令都长在反引号里，不剥会误报。
+const BARE_URL_RE = /(?<![<`]|\]\()((?:https?:\/\/|www\.)[^\s<>`]*?)(?=[（，；：、。]|["']["'（，；：、。])/g;
 const CHAPTERS = [
   '01 市场与周期',
   '02 理念与理论',
@@ -58,6 +128,12 @@ const CHAPTERS = [
   '05 风险与防守',
   '06 实务与查证',
 ];
+// t14（C5/C7 的 t9 反馈 #2）：layer 在 content.config.ts 里是 **required z.enum**，
+// 但本闸门一直不校验它。后果是新增条目漏填/写错时，只有 astro build 的 zod 阶段才报
+// `Invalid enum value`——那时已经进了构建流程，报错也不指出四值可选。
+// 这四值与 schema 必须逐字一致（src/content.config.ts:43）；改一处必须改另一处。
+// 定级 error：schema 层本就是必填，漏填同样会让 build 失败，闸门只是把失败提前。
+const LAYERS = ['理念', '执行', '档案', '工具'];
 const METRICS = ['亏损', '收益', '时间', '自由', '处罚'];
 const EVIDENCE = ['A', 'B', 'C'];
 const MONEY = ['0', '少', '多'];
@@ -101,6 +177,14 @@ for (const e of entries) {
   }
   if (!CHAPTERS.includes(d.chapter)) {
     fail(f, `chapter 不在白名单：「${d.chapter}」（允许：${CHAPTERS.join(' / ')}）`);
+  }
+  // t14：layer 必填 + 四值枚举。缺字段与非法值分开报——前者是「忘了写」，
+  // 后者是「写了个不在表里的值」，两种修法不同，文案也该不同。
+  // 两条都列出四值，免得下一个写条目的人再去翻 content.config.ts。
+  if (d.layer === undefined || d.layer === null || String(d.layer).trim() === '') {
+    fail(f, `缺 layer（归类字段，必填）。允许四值：${LAYERS.join(' / ')}——按条目性质归一类，chapter 只作默认值`);
+  } else if (!LAYERS.includes(d.layer)) {
+    fail(f, `layer 非法：「${d.layer}」（允许：${LAYERS.join(' / ')}）`);
   }
   if (!METRICS.includes(d.metric)) fail(f, `metric 非法：「${d.metric}」（允许：${METRICS.join('|')}）`);
   if (!EVIDENCE.includes(d.evidence)) fail(f, `evidence 非法：「${d.evidence}」（允许：A|B|C）`);
@@ -224,6 +308,104 @@ for (const e of entries) {
       fail(f, `双链未闭合 ${opens - closed} 处：「[[目标)」少写一个 ] 时插件不解析、渲染出字面 [[，请补全为 [[目标]]`);
     }
   }
+
+  // 14. v3「怎么做」六段顺序固定（docs/content-v2-spec.md:22-26）
+  //     旧闸门只查 6 个标记存在（规则 2/2b），不查顺序。实测 1 处违规：
+  //     「大师的业绩怎么写」**算例**(L33) 排在 **步骤**(L49) 之前，全绿通过。
+  {
+    const present = SECTION_ORDER.filter((k) => howto.includes(k));
+    const pos = present.map((k) => howto.indexOf(k));
+    const sorted = [...pos].sort((a, b) => a - b);
+    if (pos.join(',') !== sorted.join(',')) {
+      const actual = present
+        .map((k, i) => ({ k, p: pos[i] }))
+        .sort((a, b) => a.p - b.p)
+        .map((x) => x.k.replace(/\*\*/g, ''))
+        .join(' → ');
+      fail(f, `「怎么做」六段顺序违反规格（应 ${SECTION_ORDER.map((k) => k.replace(/\*\*/g, '')).join(' → ')}）：实测 ${actual}`);
+    }
+  }
+
+  // 15. v3 收益节行内口径：必须 ∈ 五值词表、且与 front matter metric 一致
+  //     旧闸门只校验 front matter 的 metric（规则 5），不校验正文行内写的
+  //     「量级（口径：X）」。实测 5 处：4 处的 X 根本不是合法值（「复现率与效应量」
+  //     「会员费与跟单亏损」…），1 处 X 合法但与 fm 矛盾（行内「收益」vs fm「亏损」）。
+  //     后果：读者按 about 页学到的五个口径在读这 5 条时失效；域页显示的「口径 亏损」
+  //     与条目正文自称的不是一回事。正确写法：**括号内只放五值之一**，量纲说明写在
+  //     冒号之后的正文里（`量级（口径：亏损）：本条量纲是复现率与效应量，不是金额——…`）。
+  //     ⚠️ 提示语踩坑记录：2026-10-12 t7 第一版按本规则旧提示「量纲说明请写进括号」
+  //     把量纲写进同一对括号（`量级（口径：亏损，含会员费与跟单浮亏两项）`），被
+  //     下面这条正则整串捕获——`[^）]*` 到**第一个右括号**为止，于是「亏损，含会员费
+  //     与跟单浮亏两项」被判不在五值词表。已改为明确说「括号内只放五值之一」，别再让
+  //     下一个人踩同一个坑。
+  {
+    const g = (sections.get('收益') ?? '').trim();
+    if (g.startsWith('量级（口径：') || g.startsWith('量级：')) {
+      for (const m of g.matchAll(/量级（口径：([^）]*)）/g)) {
+        const v = m[1].trim();
+        if (!METRICS.includes(v)) {
+          fail(f, `收益节行内口径「${v}」不在五值词表（允许：${METRICS.join('|')}）。括号内只放五值之一；量纲说明请写在冒号之后的正文里，如「量级（口径：亏损）：本条量纲是复现率与效应量，不是金额——…」`);
+        } else if (v !== d.metric) {
+          fail(f, `收益节行内口径「${v}」与 front matter metric「${d.metric}」不一致——两处必须同一个口径`);
+        }
+      }
+    }
+  }
+
+  // 16. v3「说人话」三段段首标签齐全（docs/content-v2-spec.md:37-39 要求命名）
+  //     旧闸门只查汉字数 ≥150 与禁阿拉伯数字（规则 4/11）。实测 23 条是三个无标签
+  //     自然段——段落数都是 3、字数都过下限，所以全绿；但新条目是
+  //     「是什么/为什么发生/什么时候不成立」的显式结构，同一节两种文体。
+  if (sections.has('说人话')) {
+    const miss = PLAIN_LABELS.filter((k) => !plain.includes(k));
+    if (miss.length) {
+      fail(f, `「说人话」缺段首标签：${miss.join(' / ')}（spec:37-39 要求三段命名，纯加字即可，不动正文）`);
+    }
+  }
+
+  // 17. v3 弱校验：A/B 级条目出现反方证据线索却没置 disputed: true
+  //     about.md:64「disputed：A/B 级条目若存在反方证据，改写/写作时复查，有则置 true」。
+  //     实测 1 条真漏标（双系统：备注与来源都有卡内基自承 + R-index 14）。关键词是
+  //     代理指标，「暂未找到反例」「复现失败的原因有很多种」也会命中，故只警告不阻断。
+  if ((d.evidence === 'A' || d.evidence === 'B') && d.disputed !== true) {
+    let txt = `${sections.get('备注') ?? ''}\n${sections.get('来源') ?? ''}`;
+    txt = txt.replace(/```[\s\S]*?```|~~~[\s\S]*?~~~/g, '').replace(/`[^`]*`/g, '');
+    const cues = DISPUTED_CUES.filter((c) => txt.includes(c));
+    if (cues.length) {
+      warn(f, `备注/来源出现反方证据线索（${cues.join('、')}）但未置 disputed: true——请人工复核是否该标（about.md:64）`);
+    }
+  }
+
+  // 18. v3 裸 URL 后紧跟全角标点（error）
+  //     GFM 自动链接只修剪一小组 ASCII 尾部标点，不认全角括号/逗号。裸 URL 后紧跟
+  //     「（」「，」时，标点和后面的中文会被一起吞进 href——点了就是 404，而这正违反
+  //     本站立站规则「打不开的链接等于没有来源」（index.astro:100）。实测 dist 7 处、
+  //     4 个条目页。修法：URL 改 <URL> 包裹，或在 URL 与标点间加一个空格。
+  //     必须先剥代码块/行内代码：全库的 curl 重跑命令都长在反引号里，不剥会误报。
+  {
+    let b = e.body;
+    b = b.replace(/```[\s\S]*?```|~~~[\s\S]*?~~~/g, '');
+    b = b.replace(/`[^`]*`/g, '');
+    const hits = [...b.matchAll(BARE_URL_RE)].map((m) => m[1]);
+    if (hits.length) {
+      fail(f, `裸 URL 后紧跟全角标点 ${hits.length} 处（如 ${hits[0]}）：会被自动链接吞成坏地址，请改成 <URL> 或在 URL 与标点间加空格`);
+    }
+  }
+
+  // 19. v3 弱校验：「无公开统计」的读法要能看出是「口径不存在」还是「本次未取得」
+  //     本站自己有两处权威定义（1993到1994:111「前者是公开渠道确认不存在，后者是
+  //     本次未取得」；2008全球金融危机:67「前者是口径本身不存在，后者是有口径但
+  //     本机取不到」），但全站没有规范、首页还把三分法压成一句。本条只警告。
+  //     范围取**全正文**而不是「来源」节：实测该词 162 处分布在 怎么做 85 / 来源 41 /
+  //     收益 22 / 备注 14，且上面两处权威定义分别在备注与怎么做里——只查来源会漏掉
+  //     四分之三的用例，也会把「定义了却定义在别的节」的条目误报成缺口。
+  {
+    let b = e.body;
+    b = b.replace(/```[\s\S]*?```|~~~[\s\S]*?~~~/g, '').replace(/`[^`]*`/g, '');
+    if (b.includes('无公开统计') && !STAT_CUES.some((c) => b.includes(c))) {
+      warn(f, '用了「无公开统计」但整条看不出是「口径不存在」还是「本次未取得」——请补一句消歧（权威定义见 1993到1994 / 2008全球金融危机）');
+    }
+  }
 }
 
 if (CANARY) {
@@ -251,6 +433,10 @@ for (const [file, msgs] of byFile) {
   console.error(`  ${file}`);
   for (const m of msgs) console.error(`     · ${m}`);
 }
-if (warnings.length) console.error(`\n（另有 ${warnings.length} 条不阻断的警告）`);
+if (warnings.length) {
+  console.error(`\n⚠️  ${warnings.length} 条警告（不阻断构建，但需人工复核）：`);
+  for (const w of warnings.slice(0, 30)) console.error(`   - ${w.file}：${w.msg}`);
+  if (warnings.length > 30) console.error(`   …另有 ${warnings.length - 30} 条`);
+}
 console.error(`\n构建已中止，无产物。`);
 process.exit(1);

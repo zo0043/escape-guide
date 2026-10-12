@@ -11,12 +11,23 @@
 // 约束：只改 class/属性，不改文字、不增删节点（除 strong→span 的类型替换），
 // 所以验收脚本对「四段式标记文本齐全」「反链数」的断言不受影响。
 // 与 wikilinks.mjs 同属构建期插件，不读磁盘、不依赖 import.meta.url。
+//
+// 2026-10-12 U3/U5 扩充（t8，见 audit-presentation-20261012.md E3/E4/E5/E10）：
+//   3. extractWhenSentence(body)：从正文「怎么做」节的 **什么时候用** 段提取首句，
+//      供条目页速览卡用——88 条没有 when 字段的条目由此获得该卡，零内容改动。
+//   4. 表格卡片化：≥5 列的正文表挂 class="table-cards" 且每个单元格带
+//      data-label（列名取自 thead），窄屏 CSS 据此把表格转成卡片（零 JS）。
+//      2–4 列事实表不动（折行可接受，见 E5）。
+//   5. H2_IDS 增加「业绩验证」→ perf：3 条大师条目的第六节由此获得锚点 id
+//      与 mod-perf 模块类（原来落进 mod-generic，无 id 无样式，见 E10）。
 import { visit } from 'unist-util-visit';
+import { splitSections } from './entries.mjs';
 
 const H2_IDS = {
   怎么做: 'howto',
   说人话: 'plain',
   收益: 'gain',
+  业绩验证: 'perf',
   来源: 'source',
   备注: 'notes',
 };
@@ -87,5 +98,53 @@ export default function entryHeadings() {
       node.children[0] = label;
       node.properties = { ...(node.properties ?? {}), class: ['howto-part', `howto-${part}`] };
     });
+
+    // 3. 表格卡片化（≥5 列）：挂 table-cards 类 + 每格 data-label。
+    //    列名取自 thead 第一行；2–4 列事实表保持现状（E5：折行可接受）。
+    visit(tree, 'element', (node) => {
+      if (node.tagName !== 'table') return;
+      const thead = (node.children ?? []).find((c) => c.type === 'element' && c.tagName === 'thead');
+      const headRow = (thead?.children ?? []).find((c) => c.type === 'element' && c.tagName === 'tr');
+      const headCells = (headRow?.children ?? []).filter(
+        (c) => c.type === 'element' && (c.tagName === 'th' || c.tagName === 'td'),
+      );
+      if (headCells.length < 5) return;
+      const labels = headCells.map((c) => textOf(c).trim());
+      const cls = [...(Array.isArray(node.properties?.class) ? node.properties.class : node.properties?.class ? [node.properties.class] : []), 'table-cards'];
+      node.properties = { ...(node.properties ?? {}), class: cls };
+      const tbody = (node.children ?? []).find((c) => c.type === 'element' && c.tagName === 'tbody');
+      for (const row of tbody?.children ?? []) {
+        if (row.type !== 'element' || row.tagName !== 'tr') continue;
+        let i = 0;
+        for (const cell of row.children ?? []) {
+          if (cell.type !== 'element' || (cell.tagName !== 'td' && cell.tagName !== 'th')) continue;
+          cell.properties = { ...(cell.properties ?? {}), 'data-label': labels[i] ?? '' };
+          i += 1;
+        }
+      }
+    });
   };
+}
+
+/**
+ * 从正文「怎么做」节的 **什么时候用** 段提取首句（U3/E3）。
+ * 速览卡用：d.when 缺失时（88/117 条）由本函数在构建期补齐，零内容改动。
+ * 规则：取标记后同段文字，剥掉 markdown 记号（加粗星号、双链方括号、反引号），
+ * 到第一个「；」或 60 字截断。取不到返回空串（调用方回落）。
+ */
+export function extractWhenSentence(body) {
+  const sec = splitSections(String(body ?? '')).get('怎么做');
+  if (!sec) return '';
+  const m = sec.match(/\*\*什么时候用\*\*[：:]?\s*([^\n]+)/);
+  if (!m) return '';
+  let text = m[1]
+    .replace(/\[\[([^\]|]*)\|([^\]]+)\]\]/g, '$2')
+    .replace(/\[\[([^\]]+)\]\]/g, '$1')
+    .replace(/\*\*/g, '')
+    .replace(/`/g, '')
+    .trim();
+  const cut = text.search(/[；;]/);
+  if (cut > 0 && cut <= 60) text = text.slice(0, cut);
+  else if (text.length > 60) text = `${text.slice(0, 60)}…`;
+  return text;
 }

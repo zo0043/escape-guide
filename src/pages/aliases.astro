@@ -1,0 +1,112 @@
+---
+// 别名索引 + A 级索引（U8/O7+O8，audit-presentation-20261012.md N1/N2）。
+// 零 JS 前提下最接近「搜索」的两个静态页：别名按域分组全量罗列
+// （条目数与个别名数由集合动态统计，本注释不写死数字——t10 的 C6 把
+// 265→304、113→117 之后，写死数字的注释和文案会再次过期）；
+// A 级一手证据条目一行一条带关键数字。
+// 全部构建期从集合算出；入口：首页 stat 墙（A 级）、#all 区导语（别名）、
+// 全站页头/页脚导航、404 多出口——爬虫与读者都能发现。
+import { getCollection } from 'astro:content';
+import Base from '../layouts/Base.astro';
+
+const B = import.meta.env.BASE_URL;
+const entries = await getCollection('escape');
+
+const domains = [...new Set(entries.map((e) => e.data.chapter))].sort((a, b) =>
+  a.localeCompare(b, 'zh'),
+);
+
+// 别名索引：按域分组，组内按 weight
+const aliasGroups = domains
+  .map((chapter) => ({
+    chapter,
+    items: entries
+      .filter((e) => e.data.chapter === chapter && (e.data.aliases?.length ?? 0) > 0)
+      .sort((a, b) => (a.data.weight ?? 0) - (b.data.weight ?? 0))
+      .map((e) => ({ entry: e, aliases: e.data.aliases as string[] })),
+  }))
+  .filter((g) => g.items.length > 0);
+
+const nAliases = entries.reduce((sum, e) => sum + (e.data.aliases?.length ?? 0), 0);
+
+// 有别名的条目数（description 文案用动态值，不再写死——t15 修 t10 遗留 #2：
+// 原 description 与文件头注释写死「113 条/265 个」，C6 后已是 117/304）
+const nAliasEntries = aliasGroups.reduce((sum, g) => sum + g.items.length, 0);
+
+// A 级索引：一手证据条目，一行一条
+const aLevel = entries
+  .filter((e) => e.data.evidence === 'A')
+  .sort(
+    (a, b) =>
+      String(a.data.chapter).localeCompare(String(b.data.chapter), 'zh') ||
+      (a.data.weight ?? 0) - (b.data.weight ?? 0),
+  );
+---
+
+<Base
+  title="别名索引 · A 级一手证据"
+  description={`按俗称查条目：${nAliasEntries} 条的别名全量索引；${aLevel.length} 条 A 级一手证据条目清单。`}
+>
+  <section class="topic-head">
+    <p class="entry-crumb">检索 · 别名 {nAliases} 个 · A 级 {aLevel.length} 条</p>
+    <h1 class="hero-title">按别名查，按证据查</h1>
+    <p class="topic-essence">
+      本站没有搜索框，但有条目的「又称」全量索引——你记得的俗称（「千股跌停」「6124 点」）这里都能点到条目；
+      下面再给一份 A 级一手证据清单：这些条目的数字可以复算、可以回源。
+    </p>
+  </section>
+
+  <section class="section" id="aliases">
+    <p class="section-label">ALIASES</p>
+    <h2 class="section-title">别名索引（按域分组）</h2>
+    <p class="section-intro">
+      {aliasGroups.length} 个域、{nAliases} 个别名。点别名即进入对应条目；条目页头部也带同一行「又称」。
+    </p>
+    {
+      aliasGroups.map((g) => (
+        <div class="alias-group">
+          <h3 class="alias-group-title">{g.chapter}</h3>
+          <ul class="alias-list">
+            {g.items.map(({ entry, aliases }) => (
+              <li class="alias-item">
+                <a class="alias-entry" href={`${B}${entry.id}/`}>{entry.data.title}</a>
+                <span class="alias-kicker">又称</span>
+                {aliases.map((a) => (
+                  <>
+                    {' '}
+                    <a class="alias-chip" href={`${B}${entry.id}/`}>{a}</a>
+                  </>
+                ))}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))
+    }
+  </section>
+
+  <section class="section" id="evidence-a">
+    <p class="section-label">EVIDENCE A</p>
+    <h2 class="section-title">A 级一手证据（{aLevel.length} 条）</h2>
+    <p class="section-intro">
+      有一手来源（原始文件、官方公告、可复算数据接口）并写明核对日期的条目。数字不确定的条目不在此列。
+    </p>
+    <ul class="a-list">
+      {
+        aLevel.map((e) => (
+          <li class="a-item">
+            <a class="a-title" href={`${B}${e.id}/`}>{e.data.title}</a>
+            {e.data.keyNumber && <span class="a-num">{e.data.keyNumber}</span>}
+            {!e.data.keyNumber && <span class="a-num a-num-empty">{e.data.description}</span>}
+          </li>
+        ))
+      }
+    </ul>
+  </section>
+
+  <nav class="topic-nav" aria-label="返回">
+    <a class="chip" href={`${B}#all`}>← 全目录</a>
+    <a class="chip" href={`${B}#domains`}>六域地图</a>
+    <a class="chip" href={`${B}about/`}>关于本站</a>
+  </nav>
+</Base>

@@ -6,14 +6,34 @@
 //   [[目标::关系]]          带关系属性，显示目标名
 //   [[目标::关系|显示]]     带关系属性 + 自定义文字
 //
-// 目标名按「标题或别名」匹配，且不区分大小写。解析不到的目标**不产生死链**，
+// 目标名按「标题或别名」匹配，且不区分大小写、忽略空白差异。解析不到的目标**不产生死链**，
 // 而是渲染成橙色虚线的「未收录」标记——这点与旧站一致。
 //
 // 索引在 astro.config.mjs 加载时**注入**（详见 entries.mjs 顶部那段教训）：
 // 这个插件不在运行时读磁盘，避免模块被打包后相对路径失效导致双链集体退化成「未收录」。
+//
+// ⚠️ C6/S4 设计决定（2026-10-12，audit-synthesis-20261012.md §2.2 S4）：
+// 全库 49 个标题用半角冒号 `:`、47 个用全角冒号 `：`。**别名感知放在索引层，不放归一化层**——
+// normalizeKey 故意不剥标点（只 trim + lowercase + 去空白），因为剥标点会把
+// `1993到1994:千点到三百点` 与任何去掉冒号的同名写法混为一谈，blast radius 是全站。
+// 做法是给每个半角标题补一个全角冒号别名（t10 新增 39 个，连同原有 10 个共 49 个），
+// 由 makeIndex / makeEntryIndex 把 title 与 alias 等价入表。因此：
+//   · 这里**不要**顺手给 target 剥标点——那会让索引层的别名形同虚设；
+//   · 注入的 index 必须来自 makeIndex（astro.config.mjs）或 makeEntryIndex（页面）。
 import { normalizeKey } from './slug.mjs';
 
 const WIKILINK_RE = /\[\[([^\]\n]+)\]\]/g;
+
+/**
+ * 把双链目标名解析成 slug；解析不到返回 undefined（调用方渲染「未收录」标记）。
+ *
+ * 单独导出是为了能脱离 remark 直接做双向测试：半角写法与全角写法必须命中同一条目。
+ * 别名感知完全来自 index——本函数只做归一化查表，不做任何标点处理。
+ */
+export function resolveTarget(target, index) {
+  if (!target || !index) return undefined;
+  return index.get(normalizeKey(target));
+}
 
 function escapeHtml(s) {
   return String(s)
@@ -32,7 +52,7 @@ export function renderWikilink(raw, index, base = '/') {
   const label = (labelParts.length ? labelParts.join('|') : target).trim();
   if (!target) return escapeHtml(raw);
 
-  const slug = index.get(normalizeKey(target));
+  const slug = resolveTarget(target, index);
   const text = escapeHtml(label);
   const relAttr = rel ? ` data-rel="${escapeHtml(rel)}"` : '';
   if (slug) {

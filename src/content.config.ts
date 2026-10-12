@@ -31,6 +31,16 @@ const escape = defineCollection({
     /** 必填：留空会让 og/twitter/JSON-LD 回退到正文摘要，泄漏字面 [[…]] */
     description: z.string().min(1, 'description 必填'),
     chapter: z.enum(CHAPTERS),
+    /**
+     * 层级标签（2026-10-12 S1 增设）：站点刻意把同一主题拆成理念层与执行层两条，
+     * 读者读时不知道自己在哪一层。**不要合并同题条目**，只给一个层级信号。
+     *   理念 = 讲清「为什么会这样」的概念/机制/理论
+     *   执行 = 可以直接照做的动作、纪律、流程、自查
+     *   档案 = 按人或按事件立档，核心是「发生过什么 + 可核数字」
+     *   工具 = 去哪里查、怎么查的入口（查* 类）
+     * 归类按条目性质，章节只作默认值；明细见 t9 交付的 layer 分布统计。
+     */
+    layer: z.enum(['理念', '执行', '档案', '工具']),
     weight: z.number().optional(),
     cost: z.object({
       money: z.enum(['0', '少', '多']),

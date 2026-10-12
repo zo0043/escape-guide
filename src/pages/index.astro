@@ -4,6 +4,8 @@
 import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import tables from '../data/compare.json';
+import { makeEntryIndex } from '../lib/entries.mjs';
+import { normalizeKey } from '../lib/slug.mjs';
 
 const B = import.meta.env.BASE_URL;
 const entries = await getCollection('escape');
@@ -28,9 +30,17 @@ const byDomain = domains.map((chapter) => {
   return { num, name: rest.join(' '), chapter, items, essence: DOMAIN_ESSENCE[num] ?? '' };
 });
 
-// 按标题取条目链接：标题必须存在，否则构建期直接报错（不静默漏链）
+// 按标题/别名取条目链接：标题或别名必须存在，否则构建期直接报错（不静默漏链）。
+// t15 修 t10 遗留 #1：原来是 entries.find(title===) 的 title-only 查找——C6 之后
+// 49 个全角冒号别名存在，但本页任何别名/全角写法都会被判「不存在」而 throw
+// （与 t10 修掉的 compare 缺陷同源，只是失败方式更响；响≠对，仍是缺陷）。
+// 改用 t10 的 makeEntryIndex（标题/别名 → 条目对象，索引本身冲突即抛错），
+// 查表走 normalizeKey（大小写/空白不敏感；标点敏感是 t10 的有意设计，
+// 冒号差异由别名覆盖而不是靠剥标点）。
+// 双向保留：查不到仍显式 throw——把「太响」修掉，不许把缺陷改成「静默丢失」。
+const entryIndex = makeEntryIndex(entries);
 const byTitle = (title) => {
-  const hit = entries.find((e) => e.data.title === title);
+  const hit = entryIndex.get(normalizeKey(title));
   if (!hit) throw new Error(`首页路径引用了不存在的条目标题：${title}`);
   return `${B}${hit.id}/`;
 };
@@ -62,7 +72,7 @@ const nDisputed = entries.filter((e) => e.data.disputed).length;
 const nDomains = domains.length;
 ---
 
-<Base>
+<Base anchors>
   <section class="hero">
     <p class="hero-kicker">A 股散户逃生指南</p>
     <h1 class="hero-title">先别亏钱，<br />再谈赚钱。</h1>
@@ -87,8 +97,10 @@ const nDomains = domains.length;
         <span class="stat-label">个认知域</span>
       </div>
       <div>
-        <span class="stat-num">{nA}</span>
-        <span class="stat-label">条 A 级一手证据</span>
+        <a class="stat-link" href={`${B}aliases/#evidence-a`}>
+          <span class="stat-num">{nA}</span>
+          <span class="stat-label">条 A 级一手证据</span>
+        </a>
       </div>
       <div>
         <span class="stat-num">{nDisputed}</span>
@@ -97,8 +109,7 @@ const nDomains = domains.length;
     </div>
 
     <p class="trust-line">
-      本站的来源规则只有一条：<b>打不开的链接等于没有来源</b>。核不到的数字不写，有争议的结论标争议，
-      拿不到的口径就写「无公开统计」——宁可少写一条，不编一个数字。
+      本站的来源规则只有一条：<b>打不开的链接等于没有来源</b>。每条都标 A/B/C 证据等级与核对日期；核得到但没逐条核的写「需人工核对」，口径本身不存在的写「无公开统计」，各家定义不一的写「无单一官方口径」——三种「算不出」不是同一种没有。宁可少写一条，不编一个数字。
     </p>
   </section>
 
@@ -172,7 +183,10 @@ const nDomains = domains.length;
   <section class="section" id="all">
     <p class="section-label">ALL ENTRIES</p>
     <h2 class="section-title">全部条目（{entries.length}）</h2>
-    <p class="section-intro">按域折叠。每条下面一句话说明它解决什么问题，标 <b>A</b> 的是有一手来源的条目。</p>
+    <p class="section-intro">
+      按域折叠。每条下面一句话说明它解决什么问题，并标出它的证据等级——A/B/C 的定义见下方「本站的来源规则」（以关于本站为权威）。
+      想按俗称/别名查，走<a href={`${B}aliases/`}>别名索引</a>。
+    </p>
     <div class="directory">
       {
         byDomain.map((d) => (
@@ -187,8 +201,9 @@ const nDomains = domains.length;
               {d.items.map((e) => (
                 <li class="dir-item">
                   <a class="dir-link" href={`${B}${e.id}/`}>
-                    {e.data.evidence === 'A' && <span class="dir-ev ev-A">A</span>}
+                    <span class={`dir-ev ev-${e.data.evidence}`}>{e.data.evidence}</span>
                     {e.data.title}
+                    {(e.data as any).layer && <span class="layer-tag">{(e.data as any).layer}</span>}
                   </a>
                   {e.data.description && <p class="dir-kicker">{e.data.description}</p>}
                 </li>
@@ -205,12 +220,13 @@ const nDomains = domains.length;
     <h2 class="section-title">本站的来源规则</h2>
     <p class="section-intro">
       每条条目的「来源」节都必须交代证据等级。这不是免责声明，是让读者知道这个数字能信到什么程度。
+      等级取「正文主张的主要依据」，背景来源允许低一级并在来源节逐条标级，含低一级来源时不降级；C 级另分三个子档（C1 史料不可核 / C2 民间共识无出处 / C3 二手通说待核），在「来源」节标注。
     </p>
     <div class="entry-body">
       <ul>
-        <li><b>A 级</b>：有一手来源（原始文件、官方公告、可复算的数据接口），并写明核对日期。</li>
-        <li><b>B 级</b>：只有书目/二手引用，条目里明确写「原文未逐条核对」。</li>
-        <li><b>C 级</b>：史料与流传说法，标注为不可核或存在争议。</li>
+        <li><b>A 级</b>：有一手数字：官方统计（上交所统计年鉴、证监会、中国结算）或同行评议研究，正文必须给出具体数字；推导型/定义性事实见「来源规则」（数字由推导确定）。</li>
+        <li><b>B 级</b>：有监管原文或已生效的规则、判决，或同行评议文献/书目引用（只引定性结论、不引具体统计数），事实确定但无法量化。</li>
+        <li><b>C 级</b>：经验或行业共识，没有可直接引用的出处。</li>
         <li><b>争议标记</b>：研究结论相互冲突、或数据口径存在重大分歧的条目会显式标注。</li>
       </ul>
       <p>完整的格式规范、来源要求与免责说明见 <a href={`${B}about/`}>关于本站</a>。</p>

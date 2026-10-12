@@ -1,0 +1,72 @@
+---
+// 对照表页（P1-C）：一张表代替十页长文。
+// 数据全部来自 src/data/compare.json——每一行的数字都必须能在来源条目里
+// 逐字 grep 到（verify-escape-guide.sh 有对应不变式，防表格与条目漂移）。
+import { getCollection } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import tables from '../../data/compare.json';
+
+export async function getStaticPaths() {
+  return tables.tables.map((t) => ({ params: { table: t.slug }, props: { t } }));
+}
+
+const B = import.meta.env.BASE_URL;
+const { t } = Astro.props;
+const entries = await getCollection('escape');
+const byTitle = new Map(entries.map((e) => [e.data.title, e]));
+const evClass = (ev: string) => `ev ev-${ev}`;
+---
+
+<Base title={`${t.title} · 对照表`} description={t.lede}>
+  <section class="topic-head">
+    <p class="entry-crumb">对照表 · {t.rows.length} 行 · 每行可回源到条目</p>
+    <h1 class="hero-title">{t.title}</h1>
+    <p class="topic-essence">{t.lede}</p>
+  </section>
+
+  <section class="section">
+    <div class="table-scroll">
+      <table class="compare">
+        <thead>
+          <tr>
+            {t.cols.map((c: string) => <th>{c}</th>)}
+            <th class="col-ev">证据</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            t.rows.map((r: any) => {
+              const entry = byTitle.get(r.src);
+              return (
+                <tr>
+                  {r.c.map((cell: string, i: number) =>
+                    i === 0 ? (
+                      <th scope="row" class="row-head">
+                        {entry ? <a href={`${B}${entry.id}/`}>{cell}</a> : cell}
+                      </th>
+                    ) : (
+                      <td>{cell}</td>
+                    )
+                  )}
+                  <td class={evClass(r.ev)}>{r.ev}</td>
+                </tr>
+              );
+            })
+          }
+        </tbody>
+      </table>
+    </div>
+    {t.foot && <p class="compare-foot">{t.foot}</p>}
+  </section>
+
+  <nav class="topic-nav" aria-label="对照表之间">
+    <a class="chip" href={`${B}#tables`}>← 全部对照表</a>
+    {
+      tables.tables.map((x) => (
+        <a class="chip" href={`${B}compare/${x.slug}/`} aria-current={x.slug === t.slug ? 'page' : undefined}>
+          {x.title}
+        </a>
+      ))
+    }
+  </nav>
+</Base>

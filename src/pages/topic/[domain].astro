@@ -3,6 +3,7 @@
 // 对标 Our World in Data 的 topic page：先给这个域在解决什么问题，再给条目清单（带一句话要点）。
 import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
+import tables from '../../data/compare.json';
 
 export async function getStaticPaths() {
   const entries = await getCollection('escape');
@@ -40,6 +41,14 @@ const name = chapter.split(' ').slice(1).join(' ');
 const items = entries
   .filter((e) => e.data.chapter === chapter)
   .sort((a, b) => (a.data.weight ?? 0) - (b.data.weight ?? 0));
+
+// 每个域指向与它相关的对照表（P1-C 导航层）
+const RELATED_TABLES: Record<string, string[]> = {
+  '01': ['crashes'],
+  '02': ['masters', 'philosophy'],
+  '03': ['biases'],
+};
+const related = RELATED_TABLES[num] ?? [];
 
 const domains = [...new Set(entries.map((e) => e.data.chapter))].sort((a, b) => a.localeCompare(b, 'zh'));
 const nA = items.filter((e) => e.data.evidence === 'A').length;
@@ -83,6 +92,20 @@ const nA = items.filter((e) => e.data.evidence === 'A').length;
       <p>两个都答不上来，说明这一域还需要再读一遍——不是背条目，是能用自己的话回答。</p>
     </div>
   </section>
+
+  {
+    related.length > 0 && (
+      <nav class="topic-nav" aria-label="相关对照表">
+        <span class="chip chip-static">对照表 →</span>
+        {related.map((slug) => {
+          const t = tables.tables.find((x) => x.slug === slug);
+          return t ? (
+            <a class="chip" href={`${B}compare/${t.slug}/`}>{t.title}</a>
+          ) : null;
+        })}
+      </nav>
+    )
+  }
 
   <nav class="topic-nav" aria-label="域间导航">
     <a class="chip" href={`${B}#domains`}>← 六域地图</a>

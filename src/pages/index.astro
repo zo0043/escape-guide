@@ -3,6 +3,7 @@
 // 所有数字与清单都在构建期从集合算出，不硬编码。
 import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
+import tables from '../data/compare.json';
 
 const B = import.meta.env.BASE_URL;
 const entries = await getCollection('escape');
@@ -143,6 +144,25 @@ const nDomains = domains.length;
             <p class="dc-meta">
               {d.items.length} 条 · 其中 A 级证据 {d.items.filter((e) => e.data.evidence === 'A').length} 条
             </p>
+          </a>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="section" id="tables">
+    <p class="section-label">COMPARE</p>
+    <h2 class="section-title">对照表</h2>
+    <p class="section-intro">
+      四张表代替四十页长文：股灾数字、大师业绩、认知偏差自查、理念对错。每一行都能点回条目，表里的数字与条目逐字一致。
+    </p>
+    <div class="domain-map">
+      {
+        tables.tables.map((t) => (
+          <a class="domain-card" href={`${B}compare/${t.slug}/`}>
+            <h3 class="dc-name">{t.title}</h3>
+            <p class="dc-essence">{t.lede}</p>
+            <p class="dc-meta">{t.rows.length} 行 · 每行可回源</p>
           </a>
         ))
       }

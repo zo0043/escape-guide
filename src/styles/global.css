@@ -446,3 +446,51 @@ details[open] > summary.dom-summary::after { content: "－"; }
   .hero { padding: 3rem 0 2rem; }
   .section { margin-top: 3.6rem; }
 }
+
+/* ============ 对照表（P1-C） ============ */
+.table-scroll {
+  margin-top: 2.2rem;
+  overflow-x: auto;
+  border-top: 1px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule-strong);
+}
+.compare { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.compare thead th {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: var(--fg-dim);
+  text-align: left;
+  padding: 0.85rem 0.9rem 0.85rem 0;
+  border-bottom: 1px solid var(--rule-strong);
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.compare tbody tr { border-top: 1px solid var(--rule); }
+.compare tbody tr:first-child { border-top: none; }
+.compare tbody tr:hover { background: var(--bg-soft); }
+.compare tbody th, .compare tbody td {
+  padding: 0.95rem 0.9rem 0.95rem 0;
+  vertical-align: top;
+  line-height: 1.65;
+}
+.compare .row-head { font-family: var(--serif); font-size: 1.02rem; font-weight: 700; white-space: nowrap; }
+.compare .row-head a { text-decoration: none; }
+.compare .row-head a:hover { color: var(--accent); text-decoration: underline; }
+.compare td { color: var(--fg-dim); }
+.compare td strong { color: var(--fg); }
+.compare .col-ev, .compare .ev { width: 2.6rem; text-align: center; }
+.compare .ev {
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  color: var(--fg-dim);
+}
+.compare .ev-A { color: var(--accent); font-weight: 700; }
+.compare-foot {
+  margin-top: 1.1rem;
+  font-size: 0.84rem;
+  line-height: 1.8;
+  color: var(--fg-dim);
+  max-width: var(--measure);
+}
+.chip-static { color: var(--fg-dim); border-style: dashed; cursor: default; }

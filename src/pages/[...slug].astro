@@ -1,8 +1,11 @@
 ---
 import { getCollection, render } from 'astro:content';
 import Base from '../layouts/Base.astro';
-import { computeBacklinksFrom, normalizeCollection } from '../lib/entries.mjs';
+import { computeBacklinksFrom, makeEntryIndex, normalizeCollection } from '../lib/entries.mjs';
 import { extractWhenSentence } from '../lib/headings.mjs';
+import { normalizeKey } from '../lib/slug.mjs';
+// P2-C3（U-4）：PATHS 共享源（与 index.astro 同口径，唯一事实源约束见 lib/paths.mjs 头注释）
+import { pathHitsFor } from '../lib/paths.mjs';
 
 export async function getStaticPaths() {
   const entries = await getCollection('escape');
@@ -44,7 +47,9 @@ const layer = (d as any).layer as string | undefined;
 // 1. 证据等级（常驻第一卡，含争议小标）
 // 2. 什么时候用：d.when 优先；88 条没有该字段的条目由构建期从正文
 //    **什么时候用** 段提取首句补齐（extractWhenSentence，零内容改动）
-// 3. 关键数字：两层结构（E1）——大数字=首个数字串，口径小字=完整原文。
+// 3. 关键数字：两层结构（E1）——大数字=显式声明的 keyFigure（P2-C5，闸门
+//    强制为 keyNumber 逐字子串），未声明时回退「首个数字串」机械提取；
+//    口径小字=完整原文。
 //    实测 29 条 keyNumber 并非都「约定写在最前」（如「股价 1720 年…」
 //    「峰谷 −80.4%…」），故不做「切掉前半句」式拆分（会折断散文），
 //    改为「大数字 + 完整口径小字」：大数字是钩子，小字是完整上下文。
@@ -54,18 +59,64 @@ const keyFigure = (s: string) => {
   const m = String(s).match(/[-−+]?\d[\d,]*(?:\.\d+)?\s*[%％]?/);
   return m ? m[0] : '';
 };
+// P1-11（02-P-07）：keyNumber 超长（>40 字）时卡片只留首句——
+// 到第一个「；」截断，仍超 48 字则截断加 …；完整口径进 <details> 展开（零 JS）。
+// 实测 29/29 条 keyNumber 均 77–210 字，全部命中折叠，卡片行为统一。
+const firstKeySentence = (s: string, max = 48) => {
+  const t = String(s).trim();
+  const cut = t.search(/[；;]/);
+  let head = cut > 0 ? t.slice(0, cut) : t;
+  if (head.length > max) head = `${head.slice(0, max)}…`;
+  return head;
+};
 const whenText = d.when ?? extractWhenSentence(entry.body) ?? '';
 
 const QUICK = [
   { label: '证据等级', value: `${d.evidence} 级`, num: true, flag: d.disputed ? '有争议' : '' },
   { label: '什么时候用', value: whenText || '见正文「怎么做」节' },
   d.keyNumber
-    ? { label: '关键数字', value: d.keyNumber, num: true, figure: keyFigure(d.keyNumber) }
+    ? {
+        label: '关键数字',
+        value: d.keyNumber,
+        num: true,
+        figure: d.keyFigure || keyFigure(d.keyNumber),
+        long: d.keyNumber.length > 40,
+        first: d.keyNumber.length > 40 ? firstKeySentence(d.keyNumber) : '',
+      }
     : { label: '收益档位', value: `收益档位 ${d.gain} · 量纲 ${d.metric}` },
   d.maxRisk
     ? { label: '最大风险', value: d.maxRisk, risk: true }
     : { label: '成本', value: `钱 ${d.cost.money} · 时间 ${d.cost.time} · 毅力 ${d.cost.will}` },
 ];
+
+// ── sticky 结论条（U-1，P2）──────────────────────────────
+// 数据全部现成（速览四字段，零新数据）。四字段实测 all-or-nothing 出现（41/122），
+// hasQuick 即「四字段齐」；降级形态带「收益档位·量纲」（E2 措辞，与速览卡 3 回落同源）。
+// 大数字消费 front matter 的 keyFigure（P2-C5 落地：闸门已强制其为 keyNumber
+// 逐字子串）；未声明时回退 keyFigure 正则（t11 同款）机械取首个数字串。
+// 1997 型长 keyNumber 只取「大数字」，完整口径在下方速览卡 3 的 details
+// （P1-8/P1-11 同批治理，不整段塞进 sticky 条）。
+const hasQuick = Boolean(d.lede && d.when && d.keyNumber && d.maxRisk);
+const conclNum = d.keyNumber ? (d.keyFigure || keyFigure(d.keyNumber)) : '';
+
+// ── 路径进度 chip（P2-C3 / U-4）──────────────────────────────
+// 构建期反查：本条目落在 PATHS 哪条路径的第几步 → chip 行「PATH 0X · n/m」+ 下一步链接。
+// 末步：路径带 map 回链（PATH 01-03）→「完整五步见…」指地图条目；PATH 04 无 map 字段
+// （t18 裁定：该路径不带地图回链）→ 静态「路径走完」。未命中任何路径 → 不渲染。
+// 步骤标题缺失时 index.astro 的 byTitle 构建先 throw（同一次构建），此处不会静默漏链。
+// 下一步标题与 index.astro 路径卡同口径：split('：')[0] 截冒号前主名（半角冒号标题
+// 截不动，index 侧同款行为，两页观感一致）。
+const pathEntryIndex = makeEntryIndex(all);
+const pathChips = pathHitsFor(entry.id, pathEntryIndex, normalizeKey)
+  .map((h) => ({
+    num: h.num,
+    step: h.step,
+    total: h.total,
+    nextSlug: h.next ? h.next.slug : '',
+    nextTitle: h.next ? String(h.next.title).split('：')[0] : '',
+    mapSlug: h.map ? h.map.slug : '',
+    mapTitle: h.map ? String(h.map.title).split('：')[0] : '',
+  }));
 
 // 反链为空时展示「同域相关」（E9）：同 chapter 按 weight 相邻优先取 3 条，剔除自身。
 // 纯集合数据、构建期计算，不读磁盘。
@@ -81,10 +132,32 @@ const sameDomain =
         )
         .slice(0, 3)
     : [];
+
+// ── 同域序导航（P2-C4 / 02-P-09）──────────────────────────────
+// 同 chapter 按 weight 升序（与域页 topic/[domain].astro:43 同口径：weight 差值排序，
+// 稳定排序 → 同 weight 并列保持集合序）。首条无「上一条」、末条无「下一条」。
+// 与反链/同域相关块**共存而非互斥**（P-09：旧互斥逻辑让 121/122 条失去同域横向移动）——
+// 序导航是「沿 weight 走」，相关块是「按关联度挑」，正交。单条域（domainOrder 仅 1 条）
+// 两个方向都没有，chip 对整体不渲染（回顶 chip 仍渲染）。
+const domainOrder = all
+  .filter((e) => e.chapter === d.chapter)
+  .sort((a, b) => (a.weight ?? 0) - (b.weight ?? 0));
+const domainIdx = domainOrder.findIndex((e) => e.slug === entry.id);
+const domainPrev = domainIdx > 0 ? domainOrder[domainIdx - 1] : null;
+const domainNext =
+  domainIdx >= 0 && domainIdx < domainOrder.length - 1
+    ? domainOrder[domainIdx + 1]
+    : null;
 ---
 
 <Base title={d.title} description={d.description}>
   <article>
+    <!-- U-6（P2-C4）：纯 CSS 阅读进度条——animation-timeline: scroll() 驱动（现代 Chrome/Edge
+         及 @supports 通过的浏览器），不支持的浏览器元素在场但无背景/动画 → 观感上无进度条。
+         零 JS；贴顶 3px 细线 z-40（高于页头 30），pointer-events:none 不抢点击。
+         P-16 联动：reduced-motion 的 animation/transform none !important 会使其对
+         「减少动态效果」用户不显示（有意 a11y 行为，见 CSS 注释）。 -->
+    <div class="read-progress" aria-hidden="true"></div>
     <p class="entry-crumb">
       <a href={`${B}topic/${domainNum}/`}>{d.chapter}</a>
     </p>
@@ -94,10 +167,28 @@ const sameDomain =
       <p class="entry-meta">
         {d.checked && <>来源核对于 {d.checked.toISOString().slice(0, 10)}</>}
         {d.disputed && <> · <b>本站标注：结论存在争议</b></>}
-        {layer && <> · <span class="layer-tag">{layer}</span></>}
+        {layer && <> · <span class={`layer-tag layer-${layer}`}>{layer}</span></>}
       </p>
       {d.aliases?.length > 0 && <p class="entry-aliases">又称：{d.aliases.join(' · ')}</p>}
     </header>
+
+    <!-- U-1（P2）：sticky 结论条——长条目滚动任何时刻抬头可见「哪条/什么等级/最重要的数/最大风险」。
+         完整形态=四字段齐（41/122）：标题+ev 徽标+大数字+最大风险（前缀「最大风险：」补在条内，
+         字段本体无前缀）；降级形态=标题+ev 徽标+收益档位·量纲。窄屏（≤639px）只留 标题+ev+大数字。
+         徽标复用 .dir-ev.ev-*（目录同款全局徽章，零新徽章类）；
+         风险长文单行 ellipsis + title 兜底，全文常驻在下方速览卡 4（P-07 结论常驻的压缩索引）。 -->
+    <div class="concl-bar">
+      <span class="cb-title" title={d.title}>{d.title}</span>
+      <span class={`dir-ev ev-${d.evidence}`}>{d.evidence}</span>
+      {hasQuick ? (
+        <>
+          {conclNum && <span class="cb-num">{conclNum}</span>}
+          <span class="cb-risk" title={`最大风险：${d.maxRisk}`}>最大风险：{d.maxRisk}</span>
+        </>
+      ) : (
+        <span class="cb-meta">收益档位 {d.gain} · 量纲 {d.metric}</span>
+      )}
+    </div>
 
     <div class="quick-cards">
       {
@@ -107,7 +198,13 @@ const sameDomain =
             {c.figure ? (
               <p class="qc-value is-num">
                 <span class="qc-figure">{c.figure}</span>
-                <span class="qc-note">{c.value}</span>
+                <span class="qc-note">{c.long ? c.first : c.value}</span>
+                {c.long && (
+                  <details class="qc-more">
+                    <summary>完整口径</summary>
+                    <p class="qc-note">{c.value}</p>
+                  </details>
+                )}
               </p>
             ) : (
               <p class={`qc-value${c.num ? ' is-num' : ''}${c.risk ? ' is-risk' : ''}`}>
@@ -119,6 +216,25 @@ const sameDomain =
         ))
       }
     </div>
+
+    <!-- P2-C3（U-4）：路径进度 chip 行——路径在离开首页的一刻就断（02-P-05），
+         条目页补上「PATH 0X · n/m → 下一步」。普通流（非 sticky），位于速览卡与
+         页内目录 chips 之间，与结论条/quick-cards 无叠压。未命中路径不渲染。
+         链接复用 .chip 语言；末步 map 回链与 index.astro 路径卡同措辞。 -->
+    {pathChips.length > 0 && (
+      <nav class="path-chips" aria-label="路径进度">
+        {pathChips.map((h) => (
+          <>
+            <span class="path-pos">{h.num} · {h.step}/{h.total}</span>
+            {h.nextSlug
+              ? <a class="chip" href={`${B}${h.nextSlug}/`}>下一步：{h.nextTitle}</a>
+              : h.mapSlug
+                ? <a class="chip" href={`${B}${h.mapSlug}/`}>完整五步见{h.mapTitle}</a>
+                : <span class="chip chip-static">路径走完</span>}
+          </>
+        ))}
+      </nav>
+    )}
 
     <nav class="section-chips" aria-label="页内目录">
       {TOC.map(([label, id]) => <a class="chip" href={`#${id}`}>{label}</a>)}
@@ -158,4 +274,17 @@ const sameDomain =
       </aside>
     )
   }
+
+  <!-- P2-C4（02-P-09）：底部同域序导航 + 回顶——chip 语言复用 .chip；
+       标题截断与路径 chip 同口径 split('：')[0]；回顶目标 #main（skip-link 同款）。
+       单条域无上下条时只剩回顶 chip（nav 仍渲染，aria-label 不变）。 -->
+  <nav class="entry-nav" aria-label="同域序导航">
+    {domainPrev && (
+      <a class="chip" href={`${B}${domainPrev.slug}/`}>← 上一条：{String(domainPrev.title).split('：')[0]}</a>
+    )}
+    {domainNext && (
+      <a class="chip" href={`${B}${domainNext.slug}/`}>下一条：{String(domainNext.title).split('：')[0]} →</a>
+    )}
+    <a class="chip" href="#main">↑ 回顶部</a>
+  </nav>
 </Base>

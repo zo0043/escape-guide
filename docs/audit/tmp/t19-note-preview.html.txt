@@ -1,0 +1,15 @@
+【04 规则与制度】
+<p class="entry-crumb">
+        本域 10 条均为<span class="layer-tag layer-执行">执行</span>层——可以直接照做的动作、纪律、流程、自查
+      </p>
+
+【05 风险与防守】
+<p class="entry-crumb">
+        本域 16 条均为<span class="layer-tag layer-执行">执行</span>层——可以直接照做的动作、纪律、流程、自查
+      </p>
+
+【06 实务与查证】
+<p class="entry-crumb">
+        本域 7 条均为<span class="layer-tag layer-工具">工具</span>层——去哪里查、怎么查的入口（查* 类）
+      </p>
+

@@ -6,9 +6,10 @@
   "description": "A股散户逃生指南 —— 独立站点（2026-10-11 从 blog.zero43.top 的 /escape/ 拆分）",
   "scripts": {
     "dev": "astro dev",
-    "check": "node scripts/check-content.mjs",
+    "check": "node scripts/check-content.mjs && node scripts/check-compare.mjs",
     "check:canary": "node scripts/check-content.mjs --canary",
-    "build": "node scripts/check-content.mjs && astro build",
+    "check:compare": "node scripts/check-compare.mjs",
+    "build": "npm run check && astro build",
     "build:soft": "astro build",
     "preview": "astro preview"
   },
@@ -16,6 +17,8 @@
     "@astrojs/markdown-remark": "^7.3.2",
     "@astrojs/rss": "^4.0.19",
     "@astrojs/sitemap": "^3.7.4",
-    "astro": "^7.3.8"
+    "astro": "^7.3.8",
+    "unist-util-visit": "^5.1.0",
+    "yaml": "^2.9.1"
   }
 }

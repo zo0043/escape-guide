@@ -28,7 +28,7 @@ const escape = defineCollection({
     title: z.string(),
     aliases: z.array(z.string()).default([]),
     date: z.coerce.date().optional(),
-    /** 必填：留空会让 og/twitter/JSON-LD 回退到正文摘要，泄漏字面 [[…]] */
+    /** 必填：留空会让 og/twitter 回退到正文摘要，泄漏字面 [[…]] */
     description: z.string().min(1, 'description 必填'),
     chapter: z.enum(CHAPTERS),
     /**
@@ -53,8 +53,8 @@ const escape = defineCollection({
     evidence: z.enum(['A', 'B', 'C']),
     /** 可选：A/B 级存在反方证据时置 true */
     disputed: z.boolean().default(false),
-    /** 来源核对日期；引用监管文件的条目必填 */
-    checked: z.coerce.date().optional(),
+    /** 来源核对日期；对所有条目必填（C 级也不例外）——A股规则会变，这个日期就是说法的保质期（与 about.md「来源规则」同口径） */
+    checked: z.coerce.date(),
     // ── 一屏速览字段（2026-10-11 界面重做新增，全部可选）──
     // 条目页顶部四张事实卡：有这些字段就用它们，没有就回落到 成本/收益/证据 结构化事实。
     /** 一句话结论：这条到底在说什么（列表页 kicker 与条目页结论卡共用） */
@@ -63,6 +63,8 @@ const escape = defineCollection({
     when: z.string().optional(),
     /** 关键数字：最能说明问题的那一个数（含口径） */
     keyNumber: z.string().optional(),
+    /** 大数字：显式指定速览卡 3 / 结论条的大号数字（P2-C5）；声明了就必须是 keyNumber 的逐字子串（闸门机检，防漂移）；缺省时回退「首个数字串」机械提取（[...slug].astro 的 keyFigure 正则） */
+    keyFigure: z.string().optional(),
     /** 最大风险：用错这条会怎么死（一句话） */
     maxRisk: z.string().optional(),
     tags: z.array(z.string()).default([]),

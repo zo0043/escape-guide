@@ -67,11 +67,15 @@ a:hover { color: var(--accent); }
 .wrap { max-width: 70rem; margin: 0 auto; padding: 0 1.35rem; }
 
 /* ============ 页头 ============ */
+/* P0-4（02-P-01）：height→min-height。锁高时窄屏内容无处可去（压塌或裁剪）；
+   改 min-height 后即使个别环境出现换行，页头是长高而不是裁剪。
+   var(--header-h) 仍被 .section-chips 的 top 与 h2 的 scroll-margin-top 引用——
+   正常布局下页头实际高度不变（nav 横滑、不再撑破），只是不再强制锁死。 */
 .site-header {
   position: sticky;
   top: 0;
   z-index: 30;
-  height: var(--header-h);
+  min-height: var(--header-h);
   display: flex;
   align-items: center;
   background: color-mix(in srgb, var(--bg) 88%, transparent);
@@ -86,10 +90,85 @@ a:hover { color: var(--accent); }
   font-weight: 700;
   letter-spacing: 0.01em;
   text-decoration: none;
+  flex-shrink: 0; /* P0-4：站名保持完整，收缩预算全部给 nav 的横滑窗口 */
 }
-.site-nav { margin-left: auto; display: flex; gap: 1.2rem; font-size: 0.86rem; }
-.site-nav a { text-decoration: none; color: var(--fg-dim); }
+/* P0-4（02-P-01）：窄屏 nav 横滑——与 .section-chips 同手法（overflow-x:auto + 藏滚动条，零 JS）。
+   overflow 容器自动把 flex 最小尺寸钳到 0，nav 不再把页头撑出视口；
+   a 加 white-space:nowrap 保持单行滚动条带——否则 CJK 的 min-content 是 1 字宽，
+   链接会折成多行窄列（正是 02-P-01 描述的「压塌」形态）。
+   宽屏下内容放得下，无滚动、视觉与改前一致。 */
+.site-nav {
+  margin-left: auto;
+  display: flex;
+  gap: 1.2rem;
+  font-size: 0.86rem;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.site-nav::-webkit-scrollbar { display: none; }
+.site-nav a { text-decoration: none; color: var(--fg-dim); white-space: nowrap; }
 .site-nav a:hover { color: var(--accent); }
+/* P1-9（02-P-02）：「域与表」零 JS 下拉——六域/四对照表进全局导航（全站唯一域级入口）。
+   菜单用 position:fixed 逃出 .site-nav 的 overflow-x:auto 滚动容器裁剪（t8）：
+   .site-header 的 backdrop-filter 构成 fixed 后代的包含块，且 sticky 页头恒在视口顶部，
+   两个坐标系（页头顶/视口顶）重合——菜单恒为页头正下方的全宽条带。
+   交互：桌面 hover/focus-within 展开（@media(hover) 守卫，防触屏误触），触屏点按（details 原生）。 */
+.nav-drop { position: relative; }
+.nav-drop-sum {
+  list-style: none;
+  cursor: pointer;
+  white-space: nowrap;
+  color: var(--fg-dim);
+}
+.nav-drop-sum::-webkit-details-marker { display: none; }
+.nav-drop-sum::after { content: "▾"; font-size: 0.62em; margin-left: 0.2em; vertical-align: 0.08em; }
+.nav-drop[open] > .nav-drop-sum::after { content: "▴"; }
+.nav-drop-sum:hover { color: var(--accent); }
+.nav-drop-menu {
+  display: none;
+  position: fixed;
+  top: var(--header-h);
+  left: 0;
+  right: 0;
+  z-index: 29; /* 低于页头 30（不叠页头），高于 sticky chips 20（展开时盖住页内目录） */
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--rule-strong);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 8%);
+  padding: 0.9rem 0 1.1rem;
+}
+.nav-drop-menu-in {
+  max-width: 70rem;
+  margin: 0 auto;
+  padding: 0 1.35rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+}
+@media (min-width: 760px) { .nav-drop-menu-in { grid-template-columns: 1fr 1fr; } }
+.nav-drop-group { display: flex; flex-wrap: wrap; gap: 0.3rem 0.4rem; align-items: baseline; }
+/* P2-C6（02-P-17）：中文标签去 mono（mono 只留数字/编号/Latin）+ 标签字号下限 0.72rem */
+.nav-drop-glabel {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: var(--fg-dim);
+  margin-right: 0.5rem;
+}
+.nav-drop-menu a {
+  text-decoration: none;
+  font-size: 0.86rem;
+  color: var(--fg);
+  padding: 0.18rem 0.5rem;
+  border-radius: 2px;
+}
+.nav-drop-menu a:hover { color: var(--accent); }
+.nav-drop-menu a:active { background: var(--accent-soft); }
+@media (hover: hover) and (pointer: fine) {
+  .nav-drop:hover .nav-drop-menu,
+  .nav-drop:focus-within .nav-drop-menu { display: block; }
+}
+.nav-drop[open] .nav-drop-menu { display: block; }
 /* 首页页内锚点（E7）：窄屏只保留「开始/六域」两个，其余收起 */
 @media (max-width: 860px) {
   .site-nav { gap: 0.9rem; }
@@ -113,9 +192,22 @@ a:hover { color: var(--accent); }
 .alias-group-title { font-size: 0.95rem; color: var(--fg-dim); font-weight: 600; margin: 0 0 0.6rem; }
 .alias-list { list-style: none; padding: 0; margin: 0; }
 .alias-item { padding: 0.55rem 0; border-bottom: 1px solid var(--rule); font-size: 0.9rem; }
-.alias-entry { font-weight: 600; text-decoration: none; color: var(--fg); }
-.alias-entry:hover { color: var(--accent); }
-.alias-kicker { margin-left: 0.5rem; font-size: 0.72rem; color: var(--fg-dim); }
+/* P1-10（02-P-12 修法③）：俗称是行的主信息——「又称」chip 前置（加粗/提色，不加字号：
+   最长 22 字 CJK 别名在 375px 下必须不超页宽，white-space:normal 允许窄屏折两行），
+   正式标题降为小字。旧 .alias-entry/.alias-kicker 规则随旧行结构删除（类集合比对：页面不再渲染）。 */
+.alias-chip-lead {
+  color: var(--fg);
+  font-weight: 600;
+  white-space: normal;
+  text-align: center;
+}
+.alias-entry-dim {
+  margin-left: 0.6rem;
+  font-size: 0.78rem;
+  color: var(--fg-dim);
+  text-decoration: none;
+}
+.alias-entry-dim:hover { color: var(--accent); text-decoration: underline; }
 .alias-chip {
   display: inline-block;
   font-size: 0.76rem;
@@ -127,6 +219,27 @@ a:hover { color: var(--accent); }
   white-space: nowrap;
 }
 .alias-chip:hover { color: var(--accent); border-color: var(--accent); }
+/* P1-10（02-P-12 方案 A）：拼音跳格——字母 chip 行 + 组头（零 JS，纯锚点）。
+   组头用 h4：域标题已是 h3，若组头也用 h3，首字母组会与域同级、破坏大纲层级。
+   锚点 scroll-margin-top 防 sticky 页头盖住组头。 */
+.alias-gchips { display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.9rem 0 0.2rem; }
+.alias-gchip {
+  padding: 0.05rem 0.42rem;
+  font-size: 0.72rem;
+  font-family: var(--mono);
+}
+.alias-ghead {
+  margin: 1.15rem 0 0.3rem;
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--fg-dim);
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.2rem;
+  scroll-margin-top: calc(var(--header-h) + 0.5rem);
+}
+.alias-gcount { margin-left: 0.5rem; font-size: 0.72rem; font-weight: 400; }
 .a-list { list-style: none; padding: 0; margin: 0; }
 .a-item { padding: 0.7rem 0; border-bottom: 1px solid var(--rule); }
 .a-title { font-weight: 600; text-decoration: none; color: var(--fg); }
@@ -135,13 +248,29 @@ a:hover { color: var(--accent); }
 .a-num-empty { opacity: 0.85; }
 /* 404 多出口（N3） */
 .nf-exits { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; margin-top: 1.4rem; }
+/* P2-C7（02-P-15）：404 静态版「你是不是要找」——推荐入口行沿用 nav-drop 菜单的链接语言
+   （.nav-drop-menu a：0.86rem/fg/小圆角/hover 提色），chip 行直接复用别名页 .alias-chip。 */
+.nf-suggest { margin-top: 2.2rem; padding-top: 1.4rem; border-top: 1px dashed var(--rule); text-align: center; }
+.nf-suggest-label { margin: 0 0 0.8rem; font-size: 0.92rem; color: var(--fg-dim); }
+.nf-suggest-entries { display: flex; flex-wrap: wrap; gap: 0.3rem 0.5rem; justify-content: center; }
+.nf-suggest-entries a {
+  text-decoration: none;
+  font-size: 0.86rem;
+  color: var(--fg);
+  padding: 0.18rem 0.5rem;
+  border-radius: 2px;
+}
+.nf-suggest-entries a:hover { color: var(--accent); }
+.nf-suggest-entries a:active { background: var(--accent-soft); }
+.nf-suggest-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center; margin-top: 0.9rem; }
+.nf-suggest-hint { margin: 0.9rem 0 0; font-size: 0.76rem; color: var(--fg-dim); }
 
 /* ============ 首屏 ============ */
 .hero { padding: 4.2rem 0 2.6rem; }
+/* P2-C6（02-P-17）：「A 股散户逃生指南」中文为主，去 mono（Latin 间距减半防稀） */
 .hero-kicker {
-  font-family: var(--mono);
   font-size: 0.76rem;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.1em;
   color: var(--accent);
   margin: 0;
 }
@@ -262,14 +391,15 @@ a:hover { color: var(--accent); }
   transition: background 0.15s ease;
 }
 .domain-card:hover { background: var(--accent-soft); }
-.dc-num { font-family: var(--serif); font-size: 1.9rem; line-height: 1; color: var(--rule-strong); }
+/* P2-A3（02-P-18）：域卡编号是「第几域」信息不是装饰——rule-strong(1.72:1) 提升为 fg-dim(5.3:1) */
+.dc-num { font-family: var(--serif); font-size: 1.9rem; line-height: 1; color: var(--fg-dim); }
 .dc-name { font-family: var(--serif); font-size: 1.32rem; font-weight: 700; margin: 0.6rem 0 0; }
 .dc-essence { margin: 0.55rem 0 0; font-size: 0.89rem; line-height: 1.85; color: var(--fg-dim); }
+/* P2-C6（02-P-17）：「N 条 · A 级 M 条」中文为主，去 mono */
 .dc-meta {
   margin-top: 1rem;
   padding-top: 0.7rem;
   border-top: 1px solid var(--rule);
-  font-family: var(--mono);
   font-size: 0.74rem;
   color: var(--fg-dim);
 }
@@ -290,7 +420,8 @@ summary.dom-summary::after { content: "＋"; margin-left: auto; font-family: var
 details[open] > summary.dom-summary::after { content: "－"; }
 .dom-summary-num { font-family: var(--mono); font-size: 0.78rem; color: var(--accent); }
 .dom-summary-name { font-family: var(--serif); font-size: 1.06rem; font-weight: 700; }
-.dom-summary-count { font-family: var(--mono); font-size: 0.76rem; color: var(--fg-dim); }
+/* P2-C6（02-P-17）：「N 条」中文单位，去 mono（编号 .dom-summary-num 的 mono 保留） */
+.dom-summary-count { font-size: 0.76rem; color: var(--fg-dim); }
 .dom-summary-essence { font-size: 0.85rem; color: var(--fg-dim); }
 .dir-list { list-style: none; margin: 0; padding: 0 0 1.4rem; display: grid; gap: 0; }
 @media (min-width: 880px) { .dir-list { grid-template-columns: 1fr 1fr; column-gap: 2.4rem; } }
@@ -300,8 +431,8 @@ details[open] > summary.dom-summary::after { content: "－"; }
 .dir-ev {
   display: inline-block;
   margin-right: 0.45rem;
-  font-family: var(--mono);
-  font-size: 0.7rem;
+  font-family: var(--mono); /* 证据等级 A/B/C 是 Latin 编码，mono 保留（P2-C6） */
+  font-size: 0.72rem;
   color: var(--fg-dim);
   border: 1px solid var(--rule);
   border-radius: 2px;
@@ -314,10 +445,10 @@ details[open] > summary.dom-summary::after { content: "－"; }
 .dir-ev.ev-C { color: var(--fg-dim); border-style: dashed; }
 
 /* ============ 条目页 ============ */
+/* P2-C6（02-P-17）：面包屑「第 3 域 · N 条」中文为主，去 mono */
 .entry-crumb {
-  font-family: var(--mono);
   font-size: 0.76rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.04em;
   color: var(--fg-dim);
   margin: 2.4rem 0 0;
 }
@@ -341,10 +472,10 @@ details[open] > summary.dom-summary::after { content: "－"; }
 .entry-aliases { margin: 0.35rem 0 0; font-size: 0.85rem; color: var(--fg-dim); }
 .entry-aliases::before { content: "又称："; font-weight: 600; color: var(--fg); }
 /* 层级标签（t9 layer 字段：理念|执行|档案|工具；未填时模板不渲染） */
+/* P2-C6（02-P-17）：0.68→0.72 下限；中文层级名去 mono */
 .layer-tag {
   display: inline-block;
-  font-size: 0.68rem;
-  font-family: var(--mono);
+  font-size: 0.72rem;
   color: var(--fg-dim);
   border: 1px solid var(--rule-strong);
   border-radius: 999px;
@@ -353,19 +484,66 @@ details[open] > summary.dom-summary::after { content: "－"; }
   vertical-align: 0.12em;
   white-space: nowrap;
 }
+/* P1-13（02-P-14/U-3）：layer 四色信号——三处 layer-tag（首页目录/域页/条目头）
+   + 域页层直达 chip + 层段标题共用。只用于小元素（tag 边框、chip 圆点、段标题左条），
+   不用大色块（杂志风克制）。理念=accent（橙）/ 执行=ok（绿）/ 档案=fg-dim（灰）/ 工具=warn（黄）。
+   色值经 .layer-X 自定义属性 --layer-c 挂到元素上，各消费处引 var(--layer-c)。
+   前置：t6 已修马克斯 pair 的 layer 矛盾（档案→理念），四色不会把数据矛盾固化进 UI。 */
+.layer-理念 { --layer-c: var(--accent); }
+.layer-执行 { --layer-c: var(--ok); }
+.layer-档案 { --layer-c: var(--fg-dim); }
+.layer-工具 { --layer-c: var(--warn); }
+.layer-tag.layer-理念,
+.layer-tag.layer-执行,
+.layer-tag.layer-档案,
+.layer-tag.layer-工具 {
+  color: var(--layer-c);
+  border-color: var(--layer-c);
+}
+.chip.layer-理念,
+.chip.layer-执行,
+.chip.layer-档案,
+.chip.layer-工具 { color: var(--layer-c); }
+.chip.layer-理念::before,
+.chip.layer-执行::before,
+.chip.layer-档案::before,
+.chip.layer-工具::before {
+  content: "";
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--layer-c);
+  margin-right: 0.4rem;
+  vertical-align: -0.05em;
+}
+/* 域页 layer 段标题：左条 3px + 计数；锚点滚动偏移防 sticky 页头盖住 */
+.topic-layer-head {
+  margin: 2.1rem 0 0.2rem;
+  font-family: var(--serif);
+  font-size: 1.28rem;
+  font-weight: 700;
+  border-left: 3px solid var(--layer-c);
+  padding-left: 0.8rem;
+  scroll-margin-top: calc(var(--header-h) + 0.5rem);
+}
+.layer-jump { margin-top: 1.1rem; }
+/* P1-11（02-P-07）：<640px 由单列纵排改 2×2——原单列下最坏条目（长 keyNumber+长 maxRisk）
+   估算 1050–1150px 超移动视口；超长的 keyNumber 另由模板层折叠为「大数字+首句+details」
+   （[...slug].astro，qc-more），两处叠加后移动端速览区显著收敛（目检：附录 A-10）。 */
 .quick-cards {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, 1fr);
   gap: 1px;
   margin: 1.9rem 0 0;
   background: var(--rule);
   border: 1px solid var(--rule);
 }
-@media (min-width: 640px) { .quick-cards { grid-template-columns: repeat(2, 1fr); } }
 /* U3：4 卡固定——宽屏四列；1024–1279 仍两列，避免每卡过窄 */
 @media (min-width: 1280px) { .quick-cards { grid-template-columns: repeat(4, 1fr); } }
 .quick-card { background: var(--bg-card); padding: 1rem 1.05rem 1.05rem; }
-.qc-label { display: block; font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.12em; color: var(--fg-dim); }
+/* P2-C6（02-P-17）：速览卡标签（证据等级/什么时候用/…）中文去 mono + 0.7→0.72 下限 */
+.qc-label { display: block; font-size: 0.72rem; letter-spacing: 0.06em; color: var(--fg-dim); }
 .qc-value { margin: 0.45rem 0 0; font-size: 0.93rem; line-height: 1.7; }
 .qc-value.is-num { font-family: var(--mono); font-size: 1.45rem; font-weight: 600; letter-spacing: -0.01em; }
 .qc-value.is-risk { color: var(--risk); }
@@ -383,12 +561,26 @@ details[open] > summary.dom-summary::after { content: "－"; }
   line-height: 1.65;
   color: var(--fg-dim);
 }
+/* P1-11（02-P-07）：超长 keyNumber 的「完整口径」展开（零 JS details）。 */
+.qc-more { margin-top: 0.45rem; }
+/* P2-C6（02-P-17）：「完整口径」是中文，去 mono + 0.7→0.72 下限 */
+.qc-more summary {
+  cursor: pointer;
+  font-size: 0.72rem;
+  color: var(--fg-dim);
+  list-style: none;
+}
+.qc-more summary::-webkit-details-marker { display: none; }
+.qc-more summary::before { content: "▸ "; }
+.qc-more[open] > summary::before { content: "▾ "; }
+.qc-more summary:hover { color: var(--accent); }
+.qc-more p { margin: 0.4rem 0 0; }
 /* 争议小标：速览卡证据等级格 + 对照表证据格共用一套视觉 */
 .qc-flag, .ev-flag {
   display: inline-block;
   margin-left: 0.4rem;
   font-family: var(--sans);
-  font-size: 0.66rem;
+  font-size: 0.72rem; /* P2-C6（02-P-17）：0.66rem 是全站最小功能文字，提到标签下限 */
   font-weight: 600;
   color: var(--warn);
   border: 1px solid var(--warn);
@@ -397,9 +589,64 @@ details[open] > summary.dom-summary::after { content: "－"; }
   vertical-align: 0.18em;
   white-space: nowrap;
 }
-.section-chips {
+/* P2-C6：.ev-flag 单独点名 0.7rem（对照表行内更紧凑） */
+.ev-flag { font-size: 0.7rem; }
+/* ============ sticky 结论条（U-1，P2） ============
+   长条目（20+ 屏）滚动任何时刻抬头可见：哪条 / 什么等级 / 最重要的数 / 最大风险。
+   z-20 与 section-chips 同档；nav-drop 29 与页头 30 仍在其上（展开下拉不遮挡）。
+   高度由 --concl-h 锁定（单行 + ellipsis 设计），使 chips 的 top 与 h2 的
+   scroll-margin 可精确叠加；变量只由 :has(.concl-bar) 的条目页 article 注入，
+   其他页面（无结论条）保持 0 偏移，行为不变。 */
+article:has(.concl-bar) { --concl-h: 2.2rem; }
+.concl-bar {
   position: sticky;
   top: var(--header-h);
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  height: var(--concl-h);
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--rule);
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+.cb-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--fg);
+}
+.concl-bar .dir-ev { flex: none; margin-right: 0; }
+.cb-num {
+  font-family: var(--mono);
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.2;
+  flex: none;
+}
+.cb-risk, .cb-meta {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fg-dim);
+}
+@media (max-width: 639px) {
+  /* 窄屏只留 标题+ev+大数字（§5.1 示例 CSS）——最大风险全文在速览卡 4 */
+  .cb-risk { display: none; }
+}
+.section-chips {
+  position: sticky;
+  /* U-1（P2）：条目页 sticky 双层叠加——chips 落到结论条下沿（--concl-h 仅条目页注入） */
+  top: calc(var(--header-h) + var(--concl-h, 0rem));
   z-index: 20;
   display: flex;
   gap: 0.45rem;
@@ -423,6 +670,34 @@ details[open] > summary.dom-summary::after { content: "－"; }
   text-decoration: none;
 }
 .chip:hover { border-color: var(--accent); color: var(--accent); }
+/* ============ 路径进度 chip 行（P2-C3 / U-4） ============
+   路径在离开首页的一刻就断（02-P-05）——条目页速览卡下方补「PATH 0X · n/m → 下一步」。
+   普通流（非 sticky）：与 sticky 结论条/页内目录 chips 无叠压，窄屏随文档换行。
+   链接复用 .chip 语言；「路径走完」静态态复用 .chip-static（对照表同款虚线）；
+   .path-pos 是 Latin+数字标签（mono 保留，P2-C6 口径）。仅命中路径的条目渲染。 */
+.path-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.9rem 0 0.6rem;
+}
+.path-pos {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: var(--fg-dim);
+}
+/* ============ 底部同域序导航 + 回顶（P2-C4 / 02-P-09） ============
+   与反链/同域相关块共存（正交：序导航沿 weight 走，相关块按关联度挑）。
+   chip 语言复用 .chip；页面最底部普通流，窄屏随文档换行。 */
+.entry-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 2.2rem;
+}
 .entry-body { max-width: var(--measure); margin-top: 0.5rem; }
 .entry-body p { margin: 1.05rem 0; }
 .entry-body h2 {
@@ -432,7 +707,8 @@ details[open] > summary.dom-summary::after { content: "－"; }
   margin: 0 0 1.1rem;
   padding-bottom: 0.55rem;
   border-bottom: 1px solid var(--rule);
-  scroll-margin-top: calc(var(--header-h) + 3.2rem);
+  /* U-1（P2）：锚点跳转需越过 页头+结论条 双层 sticky（--concl-h 仅条目页注入，其他页为 0 不变） */
+  scroll-margin-top: calc(var(--header-h) + var(--concl-h, 0rem) + 3.2rem);
 }
 .entry-body h3 { font-size: 1.06rem; margin: 1.8rem 0 0.6rem; }
 .entry-body ul, .entry-body ol { padding-left: 1.3rem; }
@@ -499,7 +775,8 @@ details[open] > summary.dom-summary::after { content: "－"; }
   font-weight: 600;
 }
 .entry-body tbody tr:nth-child(even) { background: var(--bg-soft); }
-.part-label { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.06em; color: var(--accent); }
+/* P2-C6（02-P-17）：「步骤/算例/做完你会得到」等中文分段标签，去 mono */
+.part-label { font-size: 0.8rem; letter-spacing: 0.06em; color: var(--accent); }
 .howto-part { margin: 1.3rem 0; padding-left: 1rem; border-left: 2px solid var(--rule); }
 .howto-when { border-left-color: var(--rule-strong); }
 .howto-steps { border-left-color: var(--accent); }
@@ -518,13 +795,15 @@ details[open] > summary.dom-summary::after { content: "－"; }
 .mod-source { font-size: 0.88rem; color: var(--fg-dim); }
 .mod-source h2 { font-size: 1.15rem; }
 .mod-source a { word-break: break-all; }
-.mod-notes { padding-top: 0.2rem; border-top: 1px solid var(--rule); }
+/* P1-12（02-P-08）：「备注」改 bg-soft 底块——原 --rule 发丝线上沿（1.72:1）不可辨；
+   与 mod-plain 同族但无左侧 accent 条（备注是收束节，语气最弱）。 */
+.mod-notes { padding: 1.2rem 1.5rem 1.3rem; background: var(--bg-soft); }
 .mod-notes h2 { border-bottom: none; font-size: 1.2rem; }
 .mod-notes ul { padding-left: 1.1rem; }
 .mod-notes li { font-size: 0.93rem; }
-/* t5 类集合比对标记的缺口：headings.mjs 会输出 mod-howto（五节之一）却无规则。
-   给最克制的一条区分：顶部发丝线（「怎么做」是条目的主节）。 */
-.mod-howto { border-top: 1px solid var(--rule); padding-top: 0.6rem; }
+/* P1-12（02-P-08）：「怎么做」是条目主节——给五节中最重的上沿（accent 2px）。
+   原 --rule 发丝线（1.72:1）紧贴 sticky chips 下方视觉消失（02-P-08）。 */
+.mod-howto { border-top: 2px solid var(--accent); padding-top: 0.6rem; }
 /* E10：业绩验证（大师条目第六节）——与「收益」节同族但用三线头上沿区分，
    且条目页 TOC 有条件 chip（见 [...slug].astro）。 */
 .mod-perf { border-top: 3px double var(--rule-strong); padding-top: 1.2rem; }
@@ -559,15 +838,24 @@ details[open] > summary.dom-summary::after { content: "－"; }
 .topic-list > li:last-child { border-bottom: 1px solid var(--rule); }
 .topic-item-title { font-family: var(--serif); font-size: 1.14rem; font-weight: 700; text-decoration: none; }
 .topic-item-kicker { margin: 0.3rem 0 0; font-size: 0.89rem; line-height: 1.8; color: var(--fg-dim); max-width: 44em; }
-.topic-item-meta { margin: 0.45rem 0 0; font-family: var(--mono); font-size: 0.74rem; color: var(--fg-dim); }
+/* P2-C6（02-P-17）：「收益档位 · 量纲 · 证据」中文为主，去 mono */
+.topic-item-meta { margin: 0.45rem 0 0; font-size: 0.74rem; color: var(--fg-dim); }
 .topic-nav { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 2rem; }
 
 /* ============ 反链 ============ */
 .backlinks { max-width: var(--measure); margin-top: 4.5rem; padding-top: 1.4rem; border-top: 2px solid var(--fg); }
-.backlinks-title { margin: 0 0 0.9rem; font-family: var(--mono); font-size: 0.76rem; letter-spacing: 0.14em; color: var(--fg-dim); }
+/* P2-C6（02-P-17）：「反链来源/同域相关」中文标题，去 mono */
+.backlinks-title { margin: 0 0 0.9rem; font-size: 0.76rem; letter-spacing: 0.06em; color: var(--fg-dim); }
 .backlinks ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
-.backlinks a { text-decoration: none; font-size: 0.95rem; }
-.backlinks a:hover { text-decoration: underline; }
+/* P2-A4（02-P-19）：反链/同域相关是主要交叉导航——与 .wl 同语言（rule-strong 细下划线常显，hover 出强调色） */
+.backlinks a {
+  font-size: 0.95rem;
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+}
+.backlinks a:hover { color: var(--accent); text-decoration-color: var(--accent); }
 
 /* ============ 404 ============ */
 .notfound { padding: 5rem 0; text-align: center; }
@@ -587,6 +875,11 @@ details[open] > summary.dom-summary::after { content: "－"; }
   html { font-size: 16px; }
   .hero { padding: 3rem 0 2rem; }
   .section { margin-top: 3.6rem; }
+  /* P1-11：2×2 速览卡在窄屏每卡减半宽——压内边距、大数字缩一档，
+     给「22,730.35」级长数字留折行余量（目检：附录 A-10）。 */
+  .quick-card { padding: 0.8rem 0.85rem 0.85rem; }
+  .qc-value.is-num { font-size: 1.3rem; }
+  .qc-value .qc-figure { font-size: 1.3rem; }
 }
 
 /* ============ 对照表（P1-C） ============ */
@@ -620,13 +913,13 @@ details[open] > summary.dom-summary::after { content: "－"; }
     width: auto;
     white-space: normal;
   }
+  /* P2-C6（02-P-17）：卡片化列名（data-label）中文，去 mono + 0.68→0.72 下限 */
   .compare tbody td::before, .compare tbody th::before {
     content: attr(data-label);
     display: inline-block;
     min-width: 4.2em;
     margin-right: 0.6em;
-    font-family: var(--mono);
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     color: var(--fg-dim);
     vertical-align: 0.1em;
   }
@@ -647,13 +940,13 @@ details[open] > summary.dom-summary::after { content: "－"; }
     border: none;
     padding: 0.22rem 0;
   }
+  /* P2-C6（02-P-17）：条目内表格卡片化列名（动作/数字）中文，去 mono + 0.68→0.72 下限 */
   .entry-body table.table-cards td::before, .entry-body table.table-cards th::before {
     content: attr(data-label);
     display: inline-block;
     min-width: 4.2em;
     margin-right: 0.6em;
-    font-family: var(--mono);
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     color: var(--fg-dim);
     vertical-align: 0.1em;
   }
@@ -671,10 +964,10 @@ details[open] > summary.dom-summary::after { content: "－"; }
   .table-scroll { box-shadow: inset -14px 0 10px -10px var(--rule-strong); }
 }
 .compare { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+/* P2-C6（02-P-17）：表头列名（事件/年份/…）中文为主，去 mono */
 .compare thead th {
-  font-family: var(--mono);
   font-size: 0.72rem;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.05em;
   color: var(--fg-dim);
   text-align: left;
   padding: 0.85rem 0.9rem 0.85rem 0;
@@ -693,6 +986,20 @@ details[open] > summary.dom-summary::after { content: "－"; }
 .compare .row-head { font-family: var(--serif); font-size: 1.02rem; font-weight: 700; white-space: nowrap; }
 .compare .row-head a { text-decoration: none; }
 .compare .row-head a:hover { color: var(--accent); text-decoration: underline; }
+/* P1-12（02-P-13）：行级深链——<tr id>（compare/[table].astro slugify 行首事件名）
+   + 行头行内「#」锚。# 号由 a::after 生成（纯 CSS，零 JS）；
+   scroll-margin-top 防锚点跳转后被 sticky 页头盖住行。 */
+.compare tbody tr { scroll-margin-top: calc(var(--header-h) + 1rem); }
+.compare .row-anchor {
+  text-decoration: none;
+  color: var(--fg-dim);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 400;
+  margin-left: 0.4rem;
+}
+.compare .row-anchor::after { content: "#"; }
+.compare .row-anchor:hover { color: var(--accent); }
 .compare td { color: var(--fg-dim); }
 .compare td strong { color: var(--fg); }
 .compare .col-ev, .compare .ev { width: 2.6rem; text-align: center; }
@@ -701,8 +1008,9 @@ details[open] > summary.dom-summary::after { content: "－"; }
   font-size: 0.76rem;
   color: var(--fg-dim);
 }
-.compare .ev-A { color: var(--accent); font-weight: 700; }
-/* 证据三级（对照表）：A accent 加粗 / B 正色加粗 / C 淡字 + 虚线 underline */
+.compare .ev-A { color: var(--ok); font-weight: 700; }
+/* 证据三级（对照表）：A ok 绿加粗（P2-A1：与目录 ev-A 同色，A=一手证据全站统一绿；
+   accent 只留交互元素，避免「A 级」与「可点」撞语义）/ B 正色加粗 / C 淡字 + 虚线 underline */
 .compare .ev-B { color: var(--fg); font-weight: 600; }
 .compare .ev-C { color: var(--fg-dim); text-decoration: underline dotted; text-underline-offset: 0.2em; }
 .compare-foot {
@@ -717,6 +1025,41 @@ details[open] > summary.dom-summary::after { content: "－"; }
 /* ============ 可访问性 / 输出层（N4，纯 CSS 增量，零 JS） ============ */
 /* 锚点跳转平滑（scroll-margin-top 已在 .section 上防 sticky 遮挡） */
 html { scroll-behavior: smooth; }
+/* P2-A2（02-P-16）：reduced motion——系统开「减少动态效果」时关掉平滑滚动/transition/transform
+   （覆盖 .chip/.start-card 等处的 transition 与 start-card:hover 的 translateY；
+   全站无基态 transform，!important 置空无布局副作用）。 */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition: none !important; animation: none !important; transform: none !important; }
+}
+/* U-6（P2-C4）：纯 CSS 阅读进度条——scroll() 时间线驱动 scaleX（Chrome/Edge 115+ 等
+   @supports 通过的浏览器生效；Safari/Firefox 等不支持者：元素在场但无背景/动画，
+   观感上即无进度条——优雅降级，零 JS，@supports 之外无任何脚本）。
+   贴顶 3px 细线，z-40 高于页头（30）与 sticky 结论条/chips（20），pointer-events:none
+   不抢点击；progress 贴 viewport 顶（fixed），与 sticky 层的 top 偏移体系互不干涉。
+   P-16 联动：reduced-motion 上方块的 animation/transform none !important 对本条同时生效
+   →「减少动态效果」用户看不到进度条（滚动驱动的进度线归入动态效果，有意为之）。 */
+.read-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 40;
+  pointer-events: none;
+}
+@supports (animation-timeline: scroll()) {
+  .read-progress {
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left center;
+    animation: read-progress-grow linear both;
+    animation-timeline: scroll(root);
+  }
+  @keyframes read-progress-grow {
+    to { transform: scaleX(1); }
+  }
+}
 /* 跳到正文：键盘用户不必先过 sticky 头 */
 .skip-link {
   position: absolute;
@@ -733,9 +1076,12 @@ html { scroll-behavior: smooth; }
 .skip-link:focus { left: 0.6rem; top: 0.6rem; }
 /* 打印（N4）：自查表自称「打印版」——隐头尾与交互装饰，外链展开 URL */
 @media print {
-  .site-header, .site-footer, .section-chips, .backlinks, .quick-cards,
-  .topic-nav, .skip-link, .alias-chip { display: none !important; }
+  /* P2-A5（02-P-21）：quick-cards 从隐藏清单移出——4 个速览事实（证据等级/适用时机/关键数字/最大风险）
+     恰是打印场景价值最高的内容；强制 2×2（打印宽度下原 4 列会挤）。 */
+  .site-header, .site-footer, .section-chips, .backlinks, .concl-bar, .path-chips,
+  .entry-nav, .read-progress, .topic-nav, .skip-link, .alias-chip, .nav-drop-menu { display: none !important; }
   body { background: #fff; color: #000; }
+  .quick-cards { grid-template-columns: repeat(2, 1fr); }
   .entry-body a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.75em; color: #555; }
   .mod, .section { break-inside: avoid; }
 }

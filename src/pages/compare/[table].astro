@@ -6,6 +6,7 @@ import { getCollection } from 'astro:content';
 import Base from '../../layouts/Base.astro';
 import tables from '../../data/compare.json';
 import { makeEntryIndex } from '../../lib/entries.mjs';
+import { normalizeKey, slugify } from '../../lib/slug.mjs';
 
 export async function getStaticPaths() {
   return tables.tables.map((t) => ({ params: { table: t.slug }, props: { t } }));
@@ -14,9 +15,12 @@ export async function getStaticPaths() {
 const B = import.meta.env.BASE_URL;
 const { t } = Astro.props;
 const entries = await getCollection('escape');
-// C6/S4：按标题**或别名**取条目。全库 49 个标题用半角冒号、47 个用全角冒号，
+// C6/S4：按标题**或别名**取条目。全库 50 个标题用半角冒号、50 个用全角冒号，
 // compare.json 的 src 两种写法都出现过——只认 title 会把另一种静默丢成 undefined，
 // 争议小标和来源链接一起消失，而页面照常渲染、不报错。
+// P0-1（audit 03-T1）：索引键是 normalizeKey(title/alias)（trim+小写+去空白），
+// 查表必须**同样归一化**——raw `get(r.src)` 对含空格/大写的 src（LTCM、
+// 「麦哲伦 13 年的真相」「1992 的单日十亿」）静默失配，3 行首列失链 + 丢争议小标。
 const byTitle = makeEntryIndex(entries);
 const evClass = (ev: string) => `ev ev-${ev}`;
 
@@ -24,7 +28,7 @@ const evClass = (ev: string) => `ev ev-${ev}`;
 // 每行的来源条目标了争议，表内证据格渲染「争议」小标。
 // 与 about.md:64 的规则同源：A/B 级条目存在反方证据时置 disputed: true。
 const rowDisputed = (r: any) => {
-  const entry = byTitle.get(r.src);
+  const entry = byTitle.get(normalizeKey(r.src));
   return entry ? Boolean(entry.data.disputed) : false;
 };
 
@@ -58,13 +62,18 @@ const domainNum = TABLE_DOMAIN[t.slug];
         <tbody>
           {
             t.rows.map((r: any) => {
-              const entry = byTitle.get(r.src);
+              const entry = byTitle.get(normalizeKey(r.src));
+              // P1-12（02-P-13）：行级深链——id 用行首事件名 slugify（复用 lib/slug.mjs，
+              // 与条目 URL 同一套规则）；行首 4 表 70 行实测无撞 id（t11 交付报告有记录）。
+              const rowId = slugify(r.c[0]);
               return (
-                <tr>
+                <tr id={rowId}>
                   {r.c.map((cell: string, i: number) =>
                     i === 0 ? (
                       <th scope="row" class="row-head" data-label={t.cols[0]}>
                         {entry ? <a href={`${B}${entry.id}/`}>{cell}</a> : cell}
+                        {/* 行内「#」锚：纯 CSS a::after content（零 JS），见 global.css .row-anchor */}
+                        <a class="row-anchor" href={`#${rowId}`} aria-label={`「${cell}」行的锚点`}></a>
                       </th>
                     ) : (
                       <td data-label={t.cols[i]}>{cell}</td>

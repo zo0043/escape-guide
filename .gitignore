@@ -6,3 +6,7 @@ dist/
 # 编辑器与系统
 .DS_Store
 *.log
+
+# AgentTeams 运行时状态（任务/邮箱，非项目内容）
+.agent-teams/
+

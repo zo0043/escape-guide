@@ -54,5 +54,9 @@ export default defineConfig({
     // .entry-body pre 的浅色设计（audit-presentation E6）。
     shikiConfig: { themes: { light: 'github-light', dark: 'github-dark' } },
   },
-  integrations: [sitemap()],
+  // P2-C10（03-T8）：sitemap 补 lastmod。@astrojs/sitemap 3.7.4 的选项形状是
+  // lastmod?: Date（SitemapOptions，全页统一一个值；不设置则完全不输出 <lastmod>，
+  // 没有按页面 mtime 的自动生成）。静态站语义 = 最近构建/部署时间，故取构建期
+  // new Date()（配置加载即构建时刻，GitHub Pages 每次 push 重建即刷新）。
+  integrations: [sitemap({ lastmod: new Date() })],
 });

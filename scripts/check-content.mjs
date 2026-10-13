@@ -21,7 +21,8 @@
 //  10. 「怎么做」汉字数 ≥350、11.「说人话」汉字数 ≥150——防回退下限
 //      （阈值按批次 C 实测最小值 529/262 取下，余量 34%/43%；只数汉字）
 //
-// v3 扩充（2026-10-12，详见 audit-synthesis-20261012.md §5「闸门的系统性盲区」）：
+// v3 扩充（2026-10-12，出自 2026-10-12 整合审计「闸门的系统性盲区」一节——
+// 该审计文档未随仓库发布，规则原文已内联在下方 14–19 的逐条注释里）：
 //   上面 1–13 条有一个共同盲区：**只查「标记存在」，不查「语义正确」与「渲染结果」**。
 //   2026-10-12 整合审计实测：16 条必须改里 7 条的根因都是这一条——六段标记齐但顺序错、
 //   front matter metric 合法但正文行内口径逃出词表、三段散文段过字数下限但缺 spec 要求的
@@ -41,15 +42,26 @@
 //      那时已进构建流程、报错也不指出四值可选。t12 要写 5 条新条目，先补这道闸。
 //      实测基线：117/117 条全部合规（理念 42 / 档案 38 / 执行 32 / 工具 5），零误报。
 //
+// v5 扩充（2026-10-12，t7 P0-1 —— 审计 03-T1/T2/T6 的实施）：
+//  21. compare.json 的 src 可回源（error，最小断言）：
+//      src/data/compare.json 每行的 src 必须被 makeEntryIndex 归一化索引
+//      （键 = normalizeKey(标题/别名)，与表页查表同一口径）命中，未命中即列
+//      文件名+行号判红。背景：表页查表未归一化时，src 含空格/大写的 3 行
+//      （LTCM、麦哲伦 13、1992 单日十亿）首列静默失链、构建全绿（03-T1）。
+//      完整的表↔条目数字逐字守卫是后续 P1-15 的 scripts/check-compare.mjs——
+//      本条只拦「整行解析不到条目」，勿在此重复造轮子。
+//
 // 用法：node scripts/check-content.mjs [--canary] [--only <文件名特征串>]
 //   --canary  故意让一项断言失败，用来证明这个闸门真的能判红（退出码应为 1）
 //   --only    只检查文件名包含该串的文件（批次改写时逐条自查用；
 //             双链索引仍按全量条目构建，不受过滤影响）
+import fs from 'node:fs';
 import {
   loadEntries,
   splitSections,
   extractWikilinkTargets,
   makeIndex,
+  makeEntryIndex,
   resolveContentDir,
 } from '../src/lib/entries.mjs';
 import { normalizeKey } from '../src/lib/slug.mjs';
@@ -70,7 +82,7 @@ if (onlyIdx >= 0 && !argv[onlyIdx + 1]) {
 
 const SECTIONS = ['怎么做', '说人话', '收益', '来源', '备注'];
 const HOWTO_MARKERS = ['**什么时候用**', '**步骤**', '**做完你会得到**', '**怎么算过关**'];
-// v3-14：段顺序固定（docs/content-v2-spec.md:22-26）。**算例** 与 **常见错** 也纳入
+// v3-14：段顺序固定（docs/content-v2-spec.md「怎么做」节：六段式段顺序固定）。**算例** 与 **常见错** 也纳入
 // 顺序断言——旧闸门只查「存在」，实测「大师的业绩怎么写」把 **算例** 排在 **步骤**
 // 之前仍全绿。**常见错** 按 spec 是「建议写、不机检」，故不存在时不参与顺序比较。
 const SECTION_ORDER = [
@@ -81,7 +93,7 @@ const SECTION_ORDER = [
   '**做完你会得到**',
   '**怎么算过关**',
 ];
-// v3-16：「说人话」三段段首命名（docs/content-v2-spec.md:37-39）。旧闸门只数汉字、
+// v3-16：「说人话」三段段首命名（docs/content-v2-spec.md「说人话」节：是什么/为什么发生/什么时候不成立）。旧闸门只数汉字、
 // 只禁阿拉伯数字，实测 23 条是三个无标签散文段——段落数都是 3、字数都过下限，全绿。
 const PLAIN_LABELS = ['是什么', '为什么发生', '什么时候不成立'];
 // v3-17：反方证据线索（about.md:64：A/B 级条目若存在反方证据，有则置 disputed: true）。
@@ -104,7 +116,7 @@ const STAT_CUES = [
 // 后瞻集合原本只有 （，；：、 与 ["']+（，；：、。t6(C3) 做全量渲染时补上一条实测
 // 缺口：`"URL"。` 这一型当时漏网——**全角句号 `。` 不在 GFM 的 ASCII 尾部修剪集
 // 里**，所以它和后面的中文会整串吞进 href。已用 micromark + gfmAutolinkLiteral
-// 逐型复现（过程与输出见 audit-t13-bare-url-tests.log）：
+// 逐型复现（过程与输出未随仓库发布；复现结果内联如下）：
 //   `URL。`    → href="…foo%E3%80%82%E5%90%8E%E9%9D%A2…"（句号 + 后文全吞）
 //   `"URL"。`  → href="…foo%22%E3%80%82%E5%90%8E…"（引号变 %22、句号 + 后文全吞）
 //   `URL，/、/；`→ 同为 %EF%BC%8C 等（原已覆盖）
@@ -113,7 +125,7 @@ const STAT_CUES = [
 // 另必须剥代码块/行内代码：全库的 curl 重跑命令都长在反引号里，不剥会误报。
 // ⚠️ 但 `。` 进后瞻会**重新打开**上面这个误报口子：正文 `[文字](URL)」。` 里，URL 后
 // 的 `)」` 都落在 `[^\s<>`]` 允许范围内，懒惰匹配会一路吃到 `。` 上，把正常 markdown
-// 链接判成裸 URL（实测复现，见 audit-t13-bare-url-tests.log）。故在**前瞻**再补
+// 链接判成裸 URL（实测复现；过程与输出未随仓库发布）。故在**前瞻**再补
 // `(?<!\]\()`：URL 紧跟 `](` 即 markdown 链接，不判。这样既保住 `"URL"。` / `URL。`
 // 判红，也不误伤 `[文字](URL)」。`；`(URL)。` 这种正文半角括号包 URL 仍照判。
 // 代价（已实测确认可接受）：URL 自身含半角 `)` 且其后紧跟 `。` 时漏判——全库 4 个
@@ -171,7 +183,7 @@ for (const e of entries) {
   // ---- front matter ----
   if (!d.title) fail(f, '缺 title');
   if (!String(d.description ?? '').trim()) {
-    fail(f, '缺 description。留空会让 og/twitter/JSON-LD 回退到正文摘要，泄漏字面 [[…]]');
+    fail(f, '缺 description。留空会让 og/twitter 回退到正文摘要，泄漏字面 [[…]]');
   } else if (/\[\[[^\]]+\]\]/.test(String(d.description))) {
     warn(f, 'description 含 [[…]]，该字段会原样进入 meta/og/twitter/RSS，不会被渲染成链接');
   }
@@ -193,8 +205,23 @@ for (const e of entries) {
   if (!MONEY.includes(cost.money)) fail(f, `cost.money 非法：「${cost.money}」（允许：0|少|多）`);
   if (!TIME.includes(cost.time)) fail(f, `cost.time 非法：「${cost.time}」（允许：少|中|多）`);
   if (!WILL.includes(cost.will)) fail(f, `cost.will 非法：「${cost.will}」（允许：否|些|是）`);
-  if (d.evidence === 'A' || d.evidence === 'B') {
-    if (!d.checked) warn(f, `evidence=${d.evidence} 但没写 checked（来源核对日期）`);
+  // checked 对所有条目必填（C 级也不例外）——与 content.config.ts 必填 schema、
+  // about.md「来源规则」同口径（P2-B3/01-C-15，2026-10-12 收紧：原 A/B 级 warning）。
+  if (!d.checked) fail(f, '缺 checked（来源核对日期，对所有条目必填，C 级也不例外——这个日期是说法的保质期）');
+  // P2-C5：keyFigure 显式声明「大数字」（速览卡 3 / 结论条大号展示）。
+  // 声明了就必须是 keyNumber 的逐字子串——与对照表「数字逐字一致」不变式
+  // 同风格，防声明的大号数字与来源句漂移。空串/缺 keyNumber → error。
+  // 未声明（undefined）不检查——当前 122 条均无该字段（2026-10-13 引入，零存量）。
+  if (d.keyFigure !== undefined && d.keyFigure !== null) {
+    const kn = String(d.keyNumber ?? '');
+    const kf = String(d.keyFigure);
+    if (!kf.trim()) {
+      fail(f, 'keyFigure 为空串（不声明就别写该字段——留空等价于回退机械提取，写空串没有意义）');
+    } else if (!kn) {
+      fail(f, `声明了 keyFigure「${kf}」但缺 keyNumber（keyFigure 必须是 keyNumber 的逐字子串）`);
+    } else if (!kn.includes(kf)) {
+      fail(f, `keyFigure「${kf}」不是 keyNumber 的逐字子串（防漂移：必须是 keyNumber 原文中逐字出现的一段）`);
+    }
   }
 
   // ---- 正文小节 ----
@@ -309,7 +336,7 @@ for (const e of entries) {
     }
   }
 
-  // 14. v3「怎么做」六段顺序固定（docs/content-v2-spec.md:22-26）
+  // 14. v3「怎么做」六段顺序固定（docs/content-v2-spec.md「怎么做」节：段顺序固定）
   //     旧闸门只查 6 个标记存在（规则 2/2b），不查顺序。实测 1 处违规：
   //     「大师的业绩怎么写」**算例**(L33) 排在 **步骤**(L49) 之前，全绿通过。
   {
@@ -352,14 +379,14 @@ for (const e of entries) {
     }
   }
 
-  // 16. v3「说人话」三段段首标签齐全（docs/content-v2-spec.md:37-39 要求命名）
+  // 16. v3「说人话」三段段首标签齐全（docs/content-v2-spec.md「说人话」节要求命名）
   //     旧闸门只查汉字数 ≥150 与禁阿拉伯数字（规则 4/11）。实测 23 条是三个无标签
   //     自然段——段落数都是 3、字数都过下限，所以全绿；但新条目是
   //     「是什么/为什么发生/什么时候不成立」的显式结构，同一节两种文体。
   if (sections.has('说人话')) {
     const miss = PLAIN_LABELS.filter((k) => !plain.includes(k));
     if (miss.length) {
-      fail(f, `「说人话」缺段首标签：${miss.join(' / ')}（spec:37-39 要求三段命名，纯加字即可，不动正文）`);
+      fail(f, `「说人话」缺段首标签：${miss.join(' / ')}（spec「说人话」节要求三段命名，纯加字即可，不动正文）`);
     }
   }
 
@@ -404,6 +431,45 @@ for (const e of entries) {
     b = b.replace(/```[\s\S]*?```|~~~[\s\S]*?~~~/g, '').replace(/`[^`]*`/g, '');
     if (b.includes('无公开统计') && !STAT_CUES.some((c) => b.includes(c))) {
       warn(f, '用了「无公开统计」但整条看不出是「口径不存在」还是「本次未取得」——请补一句消歧（权威定义见 1993到1994 / 2008全球金融危机）');
+    }
+  }
+}
+
+// 21. v5（P0-1）：compare.json 的 src 可回源（最小断言，error）
+//     表页（src/pages/compare/[table].astro）用 makeEntryIndex 查表，键是
+//     normalizeKey(标题/别名)。src 一旦解析不到，该行首列静默失链、争议小标
+//     一起消失，而构建全绿（2026-10-12 审计 03-T1 实测 3 行）。本断言与表页
+//     同一索引、同一归一化，在构建前把「整行回源失败」拦下。
+{
+  const compareFile = new URL('../src/data/compare.json', import.meta.url);
+  let compareRaw;
+  try {
+    compareRaw = fs.readFileSync(compareFile, 'utf8');
+  } catch (err) {
+    fail('src/data/compare.json', `读取失败：${err.message}（表页依赖此文件，缺失即构建必红）`);
+    compareRaw = null;
+  }
+  if (compareRaw) {
+    let compareIndex = null;
+    try {
+      compareIndex = makeEntryIndex(entries);
+    } catch (err) {
+      fail('src/data/compare.json', `标题/别名索引构建失败：${err.message}（与表页查表同源索引，冲突即构建必红）`);
+    }
+    if (compareIndex) {
+      const compareData = JSON.parse(compareRaw);
+      const compareLines = compareRaw.split(/\r?\n/);
+      for (const t of compareData.tables ?? []) {
+        for (const r of t.rows ?? []) {
+          if (compareIndex.get(normalizeKey(r.src))) continue;
+          const lineNo =
+            compareLines.findIndex((l) => l.includes(`"src": ${JSON.stringify(r.src)}`)) + 1;
+          fail(
+            `src/data/compare.json:${lineNo || '?'}`,
+            `src「${r.src}」（表 ${t.slug}）无法被标题/别名归一化索引解析——该行首列将失去链接。核对标题拼写，或给条目补 aliases`,
+          );
+        }
+      }
     }
   }
 }

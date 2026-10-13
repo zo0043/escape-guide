@@ -47,7 +47,20 @@ function textOf(node) {
 }
 
 export default function entryHeadings() {
-  return (tree) => {
+  return (tree, file) => {
+    // P2-B1（02-P-22，2026-10-12）：全局 processor 命中所有 markdown，pages 集合
+    // （about.md 等静态页）被连坐——h2 挂条目式 mod-* 类，将来若静态页出现与五节
+    // 同名的 h2 还会被误挂稳定 id。本插件对静态页整体跳过（不是只跳 mod-* 包裹：
+    // 「来源规则」这类 h2 与五节名只差几个字，部分跳过等于没隔离）。
+    // 判别依据 front matter：条目 front matter 必填 chapter+layer（content.config.ts
+    // 的 Zod schema 在构建期强制，122/122 条目双有），静态页 schema 只有
+    // title+description。Astro 7.3 的 .md 渲染走唯一全局 renderer
+    // （astro/dist/vite-plugin-markdown 单实例 createRenderer，无集合级 markdown
+    // 配置），配置层拆不出「pages 专用 processor」，故在插件内判别——这是最小改法。
+    // 条目页（chapter+layer 齐）走原有全部代码路径，行为逐字等价。
+    const fm = file?.data?.astro?.frontmatter;
+    if (!fm || typeof fm.chapter !== 'string' || typeof fm.layer !== 'string') return;
+
     // 1. h2 挂 id
     visit(tree, 'element', (node) => {
       if (node.tagName !== 'h2') return;

@@ -1,0 +1,201 @@
+
+===== A. slug 与文件名一致性 =====
+loadEntries(): 122 条（assertUniqueSlugs 已通过）
+A1 OK：122 条 slugify(title) 与 slugify(文件名) 全部一致
+A2 去标点后碰撞/前缀包含: 无
+A3 OK：122 条全部有 dist/<slug>/index.html
+A4 dist 多余顶层目录: []
+A4 dist 缺失条目目录: []
+
+===== B. sitemap-0.xml vs dist =====
+sitemap-0.xml 共 135 条 <loc>
+B1 非 https://blog.zero43.top/escape-guide/ 前缀: []
+B2 sitemap 多余: ["/escape-guide/compare/biases/","/escape-guide/compare/crashes/","/escape-guide/compare/masters/","/escape-guide/compare/philosophy/","/escape-guide/topic/01/","/escape-guide/topic/02/","/escape-guide/topic/03/","/escape-guide/topic/04/","/escape-guide/topic/05/","/escape-guide/topic/06/"]
+B2 sitemap 缺失: 无
+B3 lastmod 属性数: 135
+B4 robots.txt: "User-agent: *\nAllow: /\n\nSitemap: https://blog.zero43.top/escape-guide/sitemap-index.xml\n"
+
+===== C. compare.json vs 源条目 =====
+C1 70 行：src 不存在 0；页查失败（首列失链） 3
+  crashes: src=「LTCM：诺奖得主们是怎么一起破产的」→ 页面首列无链接
+  masters: src=「林奇：麦哲伦 13 年的真相」→ 页面首列无链接
+  masters: src=「索罗斯：反身性与 1992 的单日十亿」→ 页面首列无链接
+C2 单元格 337 个：逐字命中 51（其余为表格摘要措辞，站点对「数字」作逐字承诺）
+C3 单元格/nums 数字 token 共 447 个，未在源条目逐字找到 0：
+C4 dist/compare/crashes: 首列应链未链 19 行 ["1637 郁金香狂热","1720 南海泡沫","1929 大萧条","1987 黑色星期一","1990 台湾","1990 日本","1993–1994 千点到三百点","1997 亚洲金融危机","2000 互联网泡沫","2001–2005 四年熊市","2007–2008 A 股最深熊市","2008 全球金融危机","2011 欧债危机","2015–2016 杠杆牛与熔断","2018 贸易战下跌","2020 新冠崩盘","2021–2024 核心资产调整","2022 股债双杀","LTCM 诺奖得主们"]；该表源条目 disputed=true 有 1 条（应渲染「争议」小标 1 处，页面实际 1 处）
+C4 dist/compare/masters: 首列应链未链 19 行 ["博格·定投宽基","博格·跑不赢指数","巴菲特·贪婪与恐惧","巴菲特·能力圈","巴菲特·复利机器","格雷厄姆·市场先生","格雷厄姆·烟蒂股","格雷厄姆·安全边际","林奇·生活里的股票","林奇·麦哲伦","索罗斯·反身性","利弗莫尔·人生档案","利弗莫尔·错了就砍","西蒙斯·不靠观点","芒格·反过来想","马克斯·二级思维档案","马克斯·先问定价","达利欧·债务周期","达利欧·分散圣杯"]；该表源条目 disputed=true 有 8 条（应渲染「争议」小标 8 处，页面实际 8 处）
+C4 dist/compare/biases: 首列应链未链 20 行 ["损失厌恶","锚定效应","过度自信","确认偏误","后见之明","近因偏差","结果偏误","赌徒谬误","羊群行为","断言-重复-传染","一笔数学","期望值与破产","双系统","前景理论","心理账户","情绪与决策","群体心理","影响力","习惯回路","心理学研究的证据强度"]；该表源条目 disputed=true 有 4 条（应渲染「争议」小标 4 处，页面实际 4 处）
+C4 dist/compare/philosophy: 首列应链未链 12 行 ["估值纪律","分散","低成本","长期","追涨杀跌","加杠杆","听消息","频繁交易","摊平亏损","满仓单吊","预测短期","单押一个故事"]；该表源条目 disputed=true 有 1 条（应渲染「争议」小标 1 处，页面实际 1 处）
+
+===== D. dist href 扫描 =====
+D0 扫描 136 个 html 文件
+D1 href 总数 8840
+D2 绝对路径缺 /escape-guide/ 前缀: 无
+D3 站内死链: 
+  /escape-guide/12386与投诉三通道/ → /escape-guide/#all
+  /escape-guide/1637郁金香狂热第一场有记录的泡沫/ → /escape-guide/#all
+  /escape-guide/1720南海泡沫连牛顿都亏了/ → /escape-guide/#all
+  /escape-guide/1929大萧条从全民炒股到十年失业/ → /escape-guide/#all
+  /escape-guide/1987黑色星期一一天跌掉两成/ → /escape-guide/#all
+  /escape-guide/1990台湾一万二千点跌到两千点/ → /escape-guide/#all
+  /escape-guide/1990日本从四万点到失落三十年/ → /escape-guide/#all
+  /escape-guide/1993到1994千点到三百点/ → /escape-guide/#all
+  /escape-guide/1997亚洲金融危机从泰铢到韩元/ → /escape-guide/#all
+  /escape-guide/2000互联网泡沫纳指跌掉七成/ → /escape-guide/#all
+  /escape-guide/2001到2005四年熊市里的沉默/ → /escape-guide/#all
+  /escape-guide/2007到20086124点到1664点/ → /escape-guide/#all
+  /escape-guide/2008全球金融危机雷曼那一夜/ → /escape-guide/#all
+  /escape-guide/2011欧债危机主权债怎么烧到股市/ → /escape-guide/#all
+  /escape-guide/2015到2016杠杆牛和四次熔断/ → /escape-guide/#all
+  /escape-guide/2018贸易战那一年的下跌/ → /escape-guide/#all
+  /escape-guide/2020新冠崩盘史上最快的熊市/ → /escape-guide/#all
+  /escape-guide/2021到2024核心资产三年调整/ → /escape-guide/#all
+  /escape-guide/2022股债双杀通胀和加息一起砸下来/ → /escape-guide/#all
+  /escape-guide/ → /escape-guide/#all
+  /escape-guide/ → /escape-guide/#domains
+  /escape-guide/ → /escape-guide/#tables
+  /escape-guide/about/ → /escape-guide/#all
+  /escape-guide/aliases/ → /escape-guide/#all
+  /escape-guide/aliases/ → /escape-guide/#domains
+  /escape-guide/a股长期收益与回撤/ → /escape-guide/#all
+  /escape-guide/compare/biases/ → /escape-guide/#all
+  /escape-guide/compare/biases/ → /escape-guide/#tables
+  /escape-guide/compare/crashes/ → /escape-guide/#all
+  /escape-guide/compare/crashes/ → /escape-guide/#tables
+  /escape-guide/compare/masters/ → /escape-guide/#all
+  /escape-guide/compare/masters/ → /escape-guide/#tables
+  /escape-guide/compare/philosophy/ → /escape-guide/#all
+  /escape-guide/compare/philosophy/ → /escape-guide/#tables
+  /escape-guide/ → /escape-guide/about/#来源规则
+  /escape-guide/ → /escape-guide/aliases/#evidence-a
+  /escape-guide/ltcm诺奖得主们是怎么一起破产的/ → /escape-guide/#all
+  /escape-guide/topic/01/ → /escape-guide/#all
+  /escape-guide/topic/01/ → /escape-guide/#domains
+  /escape-guide/topic/02/ → /escape-guide/#all
+  /escape-guide/topic/02/ → /escape-guide/#domains
+  /escape-guide/topic/03/ → /escape-guide/#all
+  /escape-guide/topic/03/ → /escape-guide/#domains
+  /escape-guide/topic/04/ → /escape-guide/#all
+  /escape-guide/topic/04/ → /escape-guide/#domains
+  /escape-guide/topic/05/ → /escape-guide/#all
+  /escape-guide/topic/05/ → /escape-guide/#domains
+  /escape-guide/topic/06/ → /escape-guide/#all
+  /escape-guide/topic/06/ → /escape-guide/#domains
+  /escape-guide/一笔数学亏一半要赚一倍才回本/ → /escape-guide/#all
+  /escape-guide/主动退市不是白退现金选择权/ → /escape-guide/#all
+  /escape-guide/习惯回路看盘是一种成瘾/ → /escape-guide/#all
+  /escape-guide/买入之前先写下错了怎么办/ → /escape-guide/#all
+  /escape-guide/买理财亏了先问一句它做过风险测评吗/ → /escape-guide/#all
+  /escape-guide/事前检查清单下单前强制回答五问/ → /escape-guide/#all
+  /escape-guide/亏钱理念自查表我最危险的三条/ → /escape-guide/#all
+  /escape-guide/亏钱的理念加杠杆/ → /escape-guide/#all
+  /escape-guide/亏钱的理念单押一个故事/ → /escape-guide/#all
+  /escape-guide/亏钱的理念听消息/ → /escape-guide/#all
+  /escape-guide/亏钱的理念摊平亏损/ → /escape-guide/#all
+  /escape-guide/亏钱的理念满仓单吊/ → /escape-guide/#all
+  /escape-guide/亏钱的理念追涨杀跌/ → /escape-guide/#all
+  /escape-guide/亏钱的理念预测短期/ → /escape-guide/#all
+  /escape-guide/亏钱的理念频繁交易/ → /escape-guide/#all
+  /escape-guide/保险是防守不是投资先补哪三种/ → /escape-guide/#all
+  /escape-guide/修行七件事顺序比清单重要/ → /escape-guide/#all
+  /escape-guide/假冒券商app与钓鱼链接账户与出金安全/ → /escape-guide/#all
+  /escape-guide/先分清三种钱保命钱闲钱搏钱/ → /escape-guide/#all
+  /escape-guide/先搞清楚你的交易对手是谁/ → /escape-guide/#all
+  /escape-guide/公告与财报去哪查巨潮与交易所披露/ → /escape-guide/#all
+  /escape-guide/凯利公式仓位下注多少/ → /escape-guide/#all
+  /escape-guide/利好出来之前别冲出来之后别追/ → /escape-guide/#all
+  /escape-guide/利弗莫尔四次暴富四次破产的人/ → /escape-guide/#all
+  /escape-guide/利弗莫尔错了就砍永远不摊平输家/ → /escape-guide/#all
+  /escape-guide/别借钱炒股/ → /escape-guide/#all
+  /escape-guide/别摊平亏损/ → /escape-guide/#all
+  /escape-guide/别满仓别单吊/ → /escape-guide/#all
+  /escape-guide/别用杠杆工具/ → /escape-guide/#all
+  /escape-guide/别跟荐股群的老师/ → /escape-guide/#all
+  /escape-guide/别转发内部消息编造传播本身就是违法/ → /escape-guide/#all
+  /escape-guide/别追高/ → /escape-guide/#all
+  /escape-guide/前景理论亏损为什么比赚更重/ → /escape-guide/#all
+  /escape-guide/博格别试图跑赢市场定投宽基指数/ → /escape-guide/#all
+  /escape-guide/博格大多数基金经理就是跑不赢指数/ → /escape-guide/#all
+  /escape-guide/双系统快思考与慢思考/ → /escape-guide/#all
+  /escape-guide/可转债先看明白涨跌幅规则/ → /escape-guide/#all
+  /escape-guide/后见之明我早看出来了是错觉/ → /escape-guide/#all
+  /escape-guide/哪些偏差真的会亏钱十二个现象按证据排位/ → /escape-guide/#all
+  /escape-guide/外部承诺写出来告诉一个人/ → /escape-guide/#all
+  /escape-guide/多元思维模型看市场要戴四副眼镜/ → /escape-guide/#all
+  /escape-guide/大师的业绩怎么写把他赚了多少做成对比表/ → /escape-guide/#all
+  /escape-guide/如果今天空仓你还会买现在的持仓吗/ → /escape-guide/#all
+  /escape-guide/巴菲特别人贪婪时我恐惧/ → /escape-guide/#all
+  /escape-guide/巴菲特圈定能力圈圈外不赚/ → /escape-guide/#all
+  /escape-guide/巴菲特复利机器的秘密是别人的钱/ → /escape-guide/#all
+  /escape-guide/影响力你为什么听了老师的话/ → /escape-guide/#all
+  /escape-guide/心理学研究的证据强度哪些结论能信/ → /escape-guide/#all
+  /escape-guide/心理账户钱被打上了标签/ → /escape-guide/#all
+  /escape-guide/怎么查一只指数或股票的当前估值与历史分位/ → /escape-guide/#all
+  /escape-guide/情绪与决策压力之下人退回习惯/ → /escape-guide/#all
+  /escape-guide/情绪标记法先命名再操作/ → /escape-guide/#all
+  /escape-guide/戒断机制想买先写下来等一天/ → /escape-guide/#all
+  /escape-guide/投资体系地图六个环节与你的入口/ → /escape-guide/#all
+  /escape-guide/投资日记记决策不记盈亏/ → /escape-guide/#all
+  /escape-guide/损失厌恶亏一笔比赚一笔难受得多/ → /escape-guide/#all
+  /escape-guide/断言-重复-传染叙事是如何被制造的/ → /escape-guide/#all
+  /escape-guide/期望值与破产仓位是算术问题/ → /escape-guide/#all
+  /escape-guide/林奇买你看得懂的在自己生活里找股票/ → /escape-guide/#all
+  /escape-guide/林奇麦哲伦13年的真相/ → /escape-guide/#all
+  /escape-guide/查一家上市公司的基本盘/ → /escape-guide/#all
+  /escape-guide/查一家机构有没有牌照/ → /escape-guide/#all
+  /escape-guide/查历史数据中证指数与fred怎么用/ → /escape-guide/#all
+  /escape-guide/查基金与公司基本面/ → /escape-guide/#all
+  /escape-guide/查规则只去这三个地方/ → /escape-guide/#all
+  /escape-guide/格雷厄姆把价格波动当市场先生的报价/ → /escape-guide/#all
+  /escape-guide/格雷厄姆烟蒂股背后的数学/ → /escape-guide/#all
+  /escape-guide/格雷厄姆给价格留一道安全边际/ → /escape-guide/#all
+  /escape-guide/泡沫的共同结构五次崩盘里的同一套剧本/ → /escape-guide/#all
+  /escape-guide/涨停买不进的别追/ → /escape-guide/#all
+  /escape-guide/牛市里猪都能飞熊市里猪先摔/ → /escape-guide/#all
+  /escape-guide/看不懂的不碰/ → /escape-guide/#all
+  /escape-guide/确认偏误你的信息流只喂你想看的/ → /escape-guide/#all
+  /escape-guide/索罗斯反身性与1992的单日十亿/ → /escape-guide/#all
+  /escape-guide/红利税持股期限决定税率/ → /escape-guide/#all
+  /escape-guide/结果偏误按盈亏判决策是最常见的错/ → /escape-guide/#all
+  /escape-guide/羊群行为为什么市场会一起错/ → /escape-guide/#all
+  /escape-guide/群体心理人群里没有个人/ → /escape-guide/#all
+  /escape-guide/自动化纪律把规则交给制度/ → /escape-guide/#all
+  /escape-guide/芒格反过来想与思维模型格栅/ → /escape-guide/#all
+  /escape-guide/行情差的时候最好的策略是观望/ → /escape-guide/#all
+  /escape-guide/被上市公司坑了三条官方索赔路径/ → /escape-guide/#all
+  /escape-guide/被杀猪盘盯上先固证再报警/ → /escape-guide/#all
+  /escape-guide/被退市了先查有没有先行赔付公告/ → /escape-guide/#all
+  /escape-guide/西蒙斯不靠观点赚钱/ → /escape-guide/#all
+  /escape-guide/证券纠纷调解与仲裁调解不成怎么办/ → /escape-guide/#all
+  /escape-guide/赌徒谬误跌多了该反弹了/ → /escape-guide/#all
+  /escape-guide/赚钱的理念估值纪律/ → /escape-guide/#all
+  /escape-guide/赚钱的理念低成本/ → /escape-guide/#all
+  /escape-guide/赚钱的理念分散/ → /escape-guide/#all
+  /escape-guide/赚钱的理念长期/ → /escape-guide/#all
+  /escape-guide/达利欧从债务周期里赚钱/ → /escape-guide/#all
+  /escape-guide/达利欧分散是圣杯不是预测/ → /escape-guide/#all
+  /escape-guide/过度自信你大概率跑不赢市场/ → /escape-guide/#all
+  /escape-guide/过程评分按决策质量不打盈亏/ → /escape-guide/#all
+  /escape-guide/近因偏差最近三个月不代表市场/ → /escape-guide/#all
+  /escape-guide/钱从哪来投资大师的七种收益来源/ → /escape-guide/#all
+  /escape-guide/锚定效应成本价高点都是锚/ → /escape-guide/#all
+  /escape-guide/频繁交易的换手成本/ → /escape-guide/#all
+  /escape-guide/马克斯二级思维先问市场已定价了什么/ → /escape-guide/#all
+  /escape-guide/马克斯二级思维怎么赚钱/ → /escape-guide/#all
+D4 锚点缺失: 无
+D5 代码块外字面 [[ : 0 处 
+D6 og/meta description 残留 [[ : 0
+D7 外链域名: blog.zero43.top, docs.static.szse.cn, en.wikipedia.org, faculty.haas.berkeley.edu, fgk.chinatax.gov.cn, fwpt.csrc12386.org.cn, github.com, lsc.isc.com.cn, tiaojie.investor.org.cn, www.berkshirehathaway.com, www.bridgewater.com, www.chinaclear.cn, www.cninfo.com.cn, www.csrc.gov.cn, www.federalreserve.gov, www.fidelity.com, www.investor.org.cn, www.isc.com.cn, www.sse.com.cn, www.szse.cn
+
+===== E. rss.xml 核对 =====
+E0 <item> 数: 122（条目 122）
+E1 rss 坏链接 0，残留 [[ 0
+E2 pubDate 分布 top5: [["Mon, 12 Oc",41],["Thu, 08 Oc",41],["Sun, 11 Oc",40]]（共 3 个不同日期）
+
+===== F. 构建配置抽查 =====
+F1 canonical(index): https://blog.zero43.top/escape-guide/
+F2 canonical(条目): https://blog.zero43.top/escape-guide/%E5%88%AB%E8%BF%BD%E9%AB%98/
+F3 favicon: <link rel="icon" type="image/x-icon" href="/escape-guide/zo0043_16x16.ico" sizes="16x16"> | <link rel="icon" type="image/x-icon" href="/escape-guide/zo0043_32x32.ico" sizes="32x32"> | <link rel="icon" type="image/png" href="/escape-guide/zo0043.png">
+F4 robots.txt 见 B4
+F5 双链渲染抽查（涨停买不进的别追）: class="wl" 4 处
+F6 404.html 存在: yes；href 数: 44

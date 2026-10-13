@@ -6,6 +6,10 @@ import Base from '../layouts/Base.astro';
 import tables from '../data/compare.json';
 import { makeEntryIndex } from '../lib/entries.mjs';
 import { normalizeKey } from '../lib/slug.mjs';
+// P2-C3（U-4）：PATHS 提取为共享数据源——本页渲染路径卡，[...slug].astro 反查条目路径归属
+// （进度 chip 行），两页同口径。唯一事实源约束（P0-3）与 PATH 04 无 map 回链的裁定
+// 见 lib/paths.mjs 头注释。
+import { MAP_TITLE, PATHS } from '../lib/paths.mjs';
 
 const B = import.meta.env.BASE_URL;
 const entries = await getCollection('escape');
@@ -45,27 +49,8 @@ const byTitle = (title) => {
   return `${B}${hit.id}/`;
 };
 
-// 三条处境路径（每条 4 步，指向真实条目）
-const PATHS = [
-  {
-    num: 'PATH 01',
-    title: '我还没入市',
-    desc: '先把钱的性质和底线定下来，再决定要不要进场——顺序反了，后面全是补救。',
-    steps: ['先分清三种钱：保命钱、闲钱、搏钱', '凯利公式：仓位下注多少', '博格：别试图跑赢市场，定投宽基指数', 'A股长期收益与回撤'],
-  },
-  {
-    num: 'PATH 02',
-    title: '我已被套',
-    desc: '先处理手上的仓位，再谈回本。最常见的二次伤害是「摊平」和「等反弹」。',
-    steps: ['买入之前先写下「错了怎么办」', '利弗莫尔：错了就砍，永远不摊平输家', '期望值与破产：仓位是算术问题', '行情差的时候，最好的策略是观望'],
-  },
-  {
-    num: 'PATH 03',
-    title: '我要建体系',
-    desc: '从「钱从哪来」和「人性怎么骗你」两头夹击，比背口诀有用。',
-    steps: ['钱从哪来：投资大师的七种收益来源', '先搞清楚：你的交易对手是谁', '损失厌恶：亏一笔比赚一笔难受得多', '频繁交易的换手成本'],
-  },
-];
+// 四条处境路径数据（PATHS / MAP_TITLE）已提取至 ../lib/paths.mjs（P2-C3 共享源）。
+// byTitle() 查不到标题构建即 throw（42-46 行），是引用不存在的条目的天然兜底。
 
 const nA = entries.filter((e) => e.data.evidence === 'A').length;
 const nDisputed = entries.filter((e) => e.data.disputed).length;
@@ -84,7 +69,7 @@ const nDomains = domains.length;
     <div class="hero-cta">
       <a class="cta cta-primary" href="#start">从哪开始 →</a>
       <a class="cta" href="#domains">六域地图</a>
-      <a class="cta" href={`${B}about/`}>来源规则</a>
+      <a class="cta" href={`${B}about/#来源规则`}>来源规则（完整版）</a>
     </div>
 
     <div class="stat-wall">
@@ -116,7 +101,7 @@ const nDomains = domains.length;
   <section class="section" id="start">
     <p class="section-label">START HERE</p>
     <h2 class="section-title">你现在是什么处境？</h2>
-    <p class="section-intro">同一个市场，三种人该做的事完全不同。选一条路径，按顺序读四条。</p>
+    <p class="section-intro">同一个市场，四种人该做的事完全不同。选一条路径，按顺序读四条。</p>
     <div class="start-here">
       {
         PATHS.map((p) => (
@@ -131,6 +116,14 @@ const nDomains = domains.length;
                   <a href={byTitle(s)}>{s.split('：')[0]}</a>
                 </>
               ))}
+              {
+                p.map && (
+                  <>
+                    {' · '}
+                    <a href={byTitle(p.map)}>完整五步见{p.map.split('：')[0]}</a>
+                  </>
+                )
+              }
             </span>
           </div>
         ))
@@ -144,6 +137,8 @@ const nDomains = domains.length;
     <p class="section-intro">
       一个完整的投资体系要回答六件事：市场怎么运转、理念对不对、人性怎么骗你、规则怎么保护你、
       怎么不犯致命的错、以及怎么自己动手查证。
+      六域是内容地图、六环节是学习顺序——同一批条目的两种划分；按顺序走的那条路见
+      <a href={byTitle(MAP_TITLE)}>投资体系地图</a>。
     </p>
     <div class="domain-map">
       {
@@ -184,14 +179,18 @@ const nDomains = domains.length;
     <p class="section-label">ALL ENTRIES</p>
     <h2 class="section-title">全部条目（{entries.length}）</h2>
     <p class="section-intro">
-      按域折叠。每条下面一句话说明它解决什么问题，并标出它的证据等级——A/B/C 的定义见下方「本站的来源规则」（以关于本站为权威）。
+      按域分组，默认展开（点域名可收起）。每条下面一句话说明它解决什么问题，并标出它的证据等级——A/B/C 的定义见下方「本站的来源规则」（以关于本站为权威）。
       想按俗称/别名查，走<a href={`${B}aliases/`}>别名索引</a>。
     </p>
+    <!-- P2-C2（U-7）：默认全开 + 深链锚点（零 JS，纯 HTML 锚点）——
+         summary 带 id={域名}：#域名 形状与域页 h1 命名一致（如 /escape-guide/#规则与制度）；
+         每个 dir-item 带 id={条目 slug}：与 content.config.ts generateId（lib/slug.mjs slugify）同口径，122 条零撞，
+         支持 /escape-guide/#条目slug 从站内链接直达单条。 -->
     <div class="directory">
       {
         byDomain.map((d) => (
-          <details class="dom-details">
-            <summary class="dom-summary">
+          <details class="dom-details" open>
+            <summary class="dom-summary" id={d.name}>
               <span class="dom-summary-num">{d.num}</span>
               <span class="dom-summary-name">{d.name}</span>
               <span class="dom-summary-count">{d.items.length} 条</span>
@@ -199,11 +198,13 @@ const nDomains = domains.length;
             </summary>
             <ul class="dir-list">
               {d.items.map((e) => (
-                <li class="dir-item">
+                <li class="dir-item" id={e.id}>
                   <a class="dir-link" href={`${B}${e.id}/`}>
                     <span class={`dir-ev ev-${e.data.evidence}`}>{e.data.evidence}</span>
                     {e.data.title}
-                    {(e.data as any).layer && <span class="layer-tag">{(e.data as any).layer}</span>}
+                    {(e.data as any).layer && (
+                      <span class={`layer-tag layer-${(e.data as any).layer}`}>{(e.data as any).layer}</span>
+                    )}
                   </a>
                   {e.data.description && <p class="dir-kicker">{e.data.description}</p>}
                 </li>

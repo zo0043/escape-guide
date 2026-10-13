@@ -42,6 +42,25 @@ const items = entries
   .filter((e) => e.data.chapter === chapter)
   .sort((a, b) => (a.data.weight ?? 0) - (b.data.weight ?? 0));
 
+// P1-13（02-P-14/U-3）：本域条目按 layer 分 4 段（理念→执行→档案→工具）+ 层直达 chip。
+// 段内保持 weight 序；单域只落一层时不渲染段头/直达（无信息量，列表同形于改前）。
+// 前置：t6 已修马克斯 pair 的 layer 矛盾（档案→理念），四色不会把数据层矛盾固化进 UI。
+const LAYERS = ['理念', '执行', '档案', '工具'];
+const layerGroups = LAYERS.map((L) => ({
+  layer: L,
+  items: items.filter((e) => (e.data as any).layer === L),
+})).filter((g) => g.items.length > 0);
+
+// P2-C9(a)（01-C-01）：单层域注明——本域条目 layer 全同时，在列表前给一句层级信号，
+// 措辞与 content.config.ts 的 layer 四值定义（S1）逐字一致；多层域已由上面 P1-13 的
+// 四段 + 层直达 chip 表达（条件互斥：length===1 才渲染注明，length>1 才渲染 chip/段头）。
+const LAYER_GLOSS: Record<string, string> = {
+  理念: '讲清「为什么会这样」的概念/机制/理论',
+  执行: '可以直接照做的动作、纪律、流程、自查',
+  档案: '按人或按事件立档，核心是「发生过什么 + 可核数字」',
+  工具: '去哪里查、怎么查的入口（查* 类）',
+};
+
 // 每个域指向与它相关的对照表（P1-C 导航层）
 const RELATED_TABLES: Record<string, string[]> = {
   '01': ['crashes'],
@@ -64,23 +83,50 @@ const nA = items.filter((e) => e.data.evidence === 'A').length;
   <section class="section">
     <p class="section-label">ENTRIES</p>
     <h2 class="section-title">本域条目</h2>
-    <ul class="topic-list">
-      {
-        items.map((e) => (
-          <li>
-            <a class="topic-item-title" href={`${B}${e.id}/`}>
-              {e.data.title}
-            </a>
-            {e.data.description && <p class="topic-item-kicker">{e.data.description}</p>}
-            <p class="topic-item-meta">
-              收益档位 {e.data.gain} · 量纲 {e.data.metric} · 证据 {e.data.evidence}
-              {e.data.disputed ? ' · 有争议' : ''}
-              {(e.data as any).layer ? <> · <span class="layer-tag">{(e.data as any).layer}</span></> : null}
-            </p>
-          </li>
-        ))
-      }
-    </ul>
+    {layerGroups.length === 1 && (
+      <p class="entry-crumb">
+        本域 {items.length} 条均为<span class={`layer-tag layer-${layerGroups[0].layer}`}>{layerGroups[0].layer}</span>层——{LAYER_GLOSS[layerGroups[0].layer]}
+      </p>
+    )}
+    {layerGroups.length > 1 && (
+      <nav class="topic-nav layer-jump" aria-label="层直达">
+        <span class="chip chip-static">层</span>
+        {layerGroups.map((g) => (
+          <a class={`chip layer-${g.layer}`} href={`#layer-${g.layer}`}>
+            {g.layer} {g.items.length}
+          </a>
+        ))}
+      </nav>
+    )}
+    {layerGroups.map((g) => (
+      <>
+        {layerGroups.length > 1 && (
+          <h3 class={`topic-layer-head layer-${g.layer}`} id={`layer-${g.layer}`}>
+            {g.layer} · {g.items.length} 条
+          </h3>
+        )}
+        <ul class="topic-list">
+          {g.items.map((e) => (
+            <li>
+              <a class="topic-item-title" href={`${B}${e.id}/`}>
+                {e.data.title}
+              </a>
+              {e.data.description && <p class="topic-item-kicker">{e.data.description}</p>}
+              <p class="topic-item-meta">
+                收益档位 {e.data.gain} · 量纲 {e.data.metric} · 证据 {e.data.evidence}
+                {e.data.disputed ? ' · 有争议' : ''}
+                {(e.data as any).layer ? (
+                  <>
+                    {' · '}
+                    <span class={`layer-tag layer-${(e.data as any).layer}`}>{(e.data as any).layer}</span>
+                  </>
+                ) : null}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </>
+    ))}
   </section>
 
   <section class="section">

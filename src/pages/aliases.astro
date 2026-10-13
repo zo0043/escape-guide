@@ -6,6 +6,15 @@
 // A 级一手证据条目一行一条带关键数字。
 // 全部构建期从集合算出；入口：首页 stat 墙（A 级）、#all 区导语（别名）、
 // 全站页头/页脚导航、404 多出口——爬虫与读者都能发现。
+//
+// P1-10（02-P-12，方案 A，队长已裁定零 JS）：拼音跳格检索。
+// 构建期把别名按拼音首字母归组（A–Z + #，# = 数字开头），每域渲染字母 chip 行
+// 跳到组头；行内「又称」chip 前置、正式标题降为小字（02-P-12 修法③：
+// 目扫目标是俗称不是标题）。零新依赖：首字母映射用预计算静态表
+// （172 个汉字 = t14 落地时 122 条标题 ∪ 377 个别名的首字并集，全部常用字，
+// 落地时 build-proxy 验证 100% 覆盖；数字不写死，未来数据变化由下面兜底逻辑接住），
+// 不加 build-only 拼音库（见 t14 交付报告 §2 取舍说明）。
+// 未收录首字（未来新增别名/标题可能引入）不静默吞：构建期 console.warn 并落 # 组。
 import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 
@@ -16,22 +25,89 @@ const domains = [...new Set(entries.map((e) => e.data.chapter))].sort((a, b) =>
   a.localeCompare(b, 'zh'),
 );
 
-// 别名索引：按域分组，组内按 weight
+// —— P1-10：拼音首字母静态映射（构建期，不进运行时）——
+// 覆盖 t14 落地时的首字并集（122 标题 ∪ 377 别名 = 172 个汉字，build-proxy 验证 100% 命中）；
+// 逐字核对于 2026-10。多音字处理（按当前数据实际读音定首字母）：
+// 大/空/行/结 多读音但首字母相同（大 dà、空 kōng/kòng、行 xíng/háng、结 jié/jiē）；
+// 调 取 T（数据中为「调解」tiáo）、长 取 C（数据中为「长期」cháng）——
+// 静态表每字只能记一个首字母，若未来数据引入异读（调查 diào、增长 zhǎng）需人工改表。
+const PYINIT: Record<string, string> = {
+  安: 'A',
+  巴: 'B', 把: 'B', 保: 'B', 被: 'B', 本: 'B', 彼: 'B', 便: 'B', 别: 'B', 伯: 'B', 博: 'B', 不: 'B',
+  财: 'C', 仓: 'C', 查: 'C', 成: 'C', 持: 'C', 出: 'C', 次: 'C', 从: 'C', 长: 'C',
+  达: 'D', 大: 'D', 代: 'D', 低: 'D', 钓: 'D', 定: 'D', 赌: 'D', 断: 'D', 对: 'D', 多: 'D',
+  二: 'E',
+  费: 'F', 分: 'F', 复: 'F',
+  杠: 'G', 格: 'G', 公: 'G', 估: 'G', 股: 'G', 官: 'G', 过: 'G',
+  核: 'H', 黑: 'H', 红: 'H', 后: 'H', 互: 'H', 沪: 'H', 换: 'H', 霍: 'H',
+  基: 'J', 吉: 'J', 加: 'J', 假: 'J', 荐: 'J', 交: 'J', 杰: 'J', 结: 'J', 戒: 'J', 近: 'J', 巨: 'J', 决: 'J',
+  凯: 'K', 看: 'K', 科: 'K', 可: 'K', 空: 'K', 跨: 'K', 快: 'K', 亏: 'K',
+  雷: 'L', 理: 'L', 历: 'L', 利: 'L', 两: 'L', 林: 'L', 六: 'L',
+  马: 'M', 买: 'M', 麦: 'M', 芒: 'M', 锚: 'M', 贸: 'M', 美: 'M', 迷: 'M',
+  哪: 'N', 纳: 'N', 南: 'N', 能: 'N', 牛: 'N',
+  欧: 'O',
+  盘: 'P', 泡: 'P', 偏: 'P', 频: 'P', 破: 'P',
+  七: 'Q', 期: 'Q', 千: 'Q', 前: 'Q', 钱: 'Q', 强: 'Q', 乔: 'Q', 情: 'Q', 全: 'Q', 确: 'Q', 群: 'Q',
+  日: 'R', 如: 'R', 瑞: 'R',
+  塞: 'S', 散: 'S', 杀: 'S', 上: 'S', 失: 'S', 十: 'S', 时: 'S', 史: 'S', 市: 'S', 事: 'S', 适: 'S', 双: 'S', 四: 'S', 损: 'S', 索: 'S',
+  台: 'T', 泰: 'T', 体: 'T', 同: 'T', 投: 'T', 调: 'T',
+  外: 'W', 沃: 'W', 乌: 'W',
+  西: 'X', 希: 'X', 习: 'X', 系: 'X', 下: 'X', 先: 'X', 现: 'X', 想: 'X', 小: 'X', 写: 'X', 心: 'X', 行: 'X', 修: 'X', 叙: 'X',
+  压: 'Y', 亚: 'Y', 羊: 'Y', 业: 'Y', 一: 'Y', 医: 'Y', 意: 'Y', 应: 'Y', 影: 'Y', 郁: 'Y', 预: 'Y', 远: 'Y', 约: 'Y',
+  展: 'Z', 涨: 'Z', 账: 'Z', 证: 'Z', 止: 'Z', 中: 'Z', 主: 'Z', 赚: 'Z', 资: 'Z', 自: 'Z', 怎: 'Z',
+};
+
+// 别名 → 组字母：数字开头 → '#'；拉丁字母 → 大写；CJK → 查表；未收录 → warn + '#'（不静默）。
+const aliasGroup = (a: string): string => {
+  const c = [...a][0];
+  if (/[0-9]/.test(c)) return '#';
+  if (/[a-zA-Z]/.test(c)) return c.toUpperCase();
+  const hit = PYINIT[c];
+  if (!hit) {
+    console.warn(
+      `[aliases.astro] P1-10：首字「${c}」（别名「${a}」）无拼音首字母映射，已落入 # 组——请补 PYINIT 表`,
+    );
+    return '#';
+  }
+  return hit;
+};
+
+// 别名索引：按域分组；域内把「条目×别名」摊平成行（一个别名叫一个组），
+// 组按 A–Z、# 殿后；组内按别名 zh 排序（ICU 中文序=拼音序，与跳格一致）。
 const aliasGroups = domains
-  .map((chapter) => ({
-    chapter,
-    items: entries
+  .map((chapter) => {
+    const num = chapter.split(' ')[0];
+    const rows = entries
       .filter((e) => e.data.chapter === chapter && (e.data.aliases?.length ?? 0) > 0)
       .sort((a, b) => (a.data.weight ?? 0) - (b.data.weight ?? 0))
-      .map((e) => ({ entry: e, aliases: e.data.aliases as string[] })),
-  }))
-  .filter((g) => g.items.length > 0);
+      .flatMap((e) => (e.data.aliases as string[]).map((alias) => ({ entry: e, alias })));
+    const byLetter = new Map<string, { entry: (typeof rows)[number]['entry']; alias: string }[]>();
+    for (const r of rows) {
+      const g = aliasGroup(r.alias);
+      if (!byLetter.has(g)) byLetter.set(g, []);
+      byLetter.get(g)!.push(r);
+    }
+    const groups = [...byLetter.entries()]
+      .sort((a, b) => {
+        if (a[0] === '#') return 1;
+        if (b[0] === '#') return -1;
+        return a[0].localeCompare(b[0]);
+      })
+      .map(([letter, list]) => ({
+        letter,
+        // id 带域前缀（6 域各有 A 组，裸 g-a 会撞）；# 在 URL fragment 里语义脏，用 other
+        id: `g-${num}-${letter === '#' ? 'other' : letter.toLowerCase()}`,
+        rows: list.sort((a, b) => a.alias.localeCompare(b.alias, 'zh')),
+      }));
+    return { chapter, num, groups };
+  })
+  .filter((g) => g.groups.length > 0);
 
 const nAliases = entries.reduce((sum, e) => sum + (e.data.aliases?.length ?? 0), 0);
 
 // 有别名的条目数（description 文案用动态值，不再写死——t15 修 t10 遗留 #2：
 // 原 description 与文件头注释写死「113 条/265 个」，C6 后已是 117/304）
-const nAliasEntries = aliasGroups.reduce((sum, g) => sum + g.items.length, 0);
+const nAliasEntries = entries.filter((e) => (e.data.aliases?.length ?? 0) > 0).length;
 
 // A 级索引：一手证据条目，一行一条
 const aLevel = entries
@@ -58,28 +134,36 @@ const aLevel = entries
 
   <section class="section" id="aliases">
     <p class="section-label">ALIASES</p>
-    <h2 class="section-title">别名索引（按域分组）</h2>
+    <h2 class="section-title">别名索引（按域 · 拼音跳格）</h2>
     <p class="section-intro">
-      {aliasGroups.length} 个域、{nAliases} 个别名。点别名即进入对应条目；条目页头部也带同一行「又称」。
+      {aliasGroups.length} 个域、{nAliases} 个别名。每域按别名拼音首字母分 A–Z + #（数字开头）组，
+      点字母 chip 跳到组；组内俗称在前、正式标题降为小字——你目扫的是俗称。点别名即进入对应条目；条目页头部也带同一行「又称」。
     </p>
     {
       aliasGroups.map((g) => (
         <div class="alias-group">
           <h3 class="alias-group-title">{g.chapter}</h3>
-          <ul class="alias-list">
-            {g.items.map(({ entry, aliases }) => (
-              <li class="alias-item">
-                <a class="alias-entry" href={`${B}${entry.id}/`}>{entry.data.title}</a>
-                <span class="alias-kicker">又称</span>
-                {aliases.map((a) => (
-                  <>
-                    {' '}
-                    <a class="alias-chip" href={`${B}${entry.id}/`}>{a}</a>
-                  </>
-                ))}
-              </li>
+          <nav class="alias-gchips" aria-label={`${g.chapter} 拼音跳格`}>
+            {g.groups.map((gr) => (
+              <a class="chip alias-gchip" href={`#${gr.id}`}>{gr.letter}</a>
             ))}
-          </ul>
+          </nav>
+          {g.groups.map((gr) => (
+            <>
+              <h4 class="alias-ghead" id={gr.id}>
+                {gr.letter}
+                <span class="alias-gcount">{gr.rows.length}</span>
+              </h4>
+              <ul class="alias-list">
+                {gr.rows.map(({ entry, alias }) => (
+                  <li class="alias-item">
+                    <a class="alias-chip alias-chip-lead" href={`${B}${entry.id}/`}>{alias}</a>
+                    <a class="alias-entry-dim" href={`${B}${entry.id}/`}>{entry.data.title}</a>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ))}
         </div>
       ))
     }

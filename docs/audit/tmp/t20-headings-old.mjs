@@ -1,0 +1,150 @@
+// 条目正文的结构性 rehype 插件（纯视觉层，不改任何正文文字）：
+//
+//   1. 五节 h2（怎么做/说人话/收益/来源/备注）挂稳定 id —— 供条目页 sticky 页内目录锚点用。
+//      固定映射而不是按文字 slug：五节名是闸门强制的常量，映射永远成立，且 URL 锚点不随措辞漂移。
+//   2. 四段式标记（**什么时候用**/**步骤**/**做完你会得到**/**怎么算过关**）
+//      markdown 渲染出来是 <p><strong>标记</strong>：…</p>，四个段在视觉上毫无区别。
+//      这里把 <strong> 换成 <span class="part-label">，并给 <p> 挂
+//      class="howto-part howto-<when|steps|output|pass>"，CSS 才能把
+//      「触发 → 动作 → 产出 → 验收」渲成四种不同的结构块。
+//
+// 约束：只改 class/属性，不改文字、不增删节点（除 strong→span 的类型替换），
+// 所以验收脚本对「四段式标记文本齐全」「反链数」的断言不受影响。
+// 与 wikilinks.mjs 同属构建期插件，不读磁盘、不依赖 import.meta.url。
+//
+// 2026-10-12 U3/U5 扩充（t8，见 audit-presentation-20261012.md E3/E4/E5/E10）：
+//   3. extractWhenSentence(body)：从正文「怎么做」节的 **什么时候用** 段提取首句，
+//      供条目页速览卡用——88 条没有 when 字段的条目由此获得该卡，零内容改动。
+//   4. 表格卡片化：≥5 列的正文表挂 class="table-cards" 且每个单元格带
+//      data-label（列名取自 thead），窄屏 CSS 据此把表格转成卡片（零 JS）。
+//      2–4 列事实表不动（折行可接受，见 E5）。
+//   5. H2_IDS 增加「业绩验证」→ perf：3 条大师条目的第六节由此获得锚点 id
+//      与 mod-perf 模块类（原来落进 mod-generic，无 id 无样式，见 E10）。
+import { visit } from 'unist-util-visit';
+import { splitSections } from '../../../src/lib/entries.mjs';
+
+const H2_IDS = {
+  怎么做: 'howto',
+  说人话: 'plain',
+  收益: 'gain',
+  业绩验证: 'perf',
+  来源: 'source',
+  备注: 'notes',
+};
+
+const PARTS = {
+  什么时候用: 'when',
+  步骤: 'steps',
+  做完你会得到: 'output',
+  怎么算过关: 'pass',
+};
+
+function textOf(node) {
+  if (!node) return '';
+  if (node.type === 'text') return node.value;
+  if (Array.isArray(node.children)) return node.children.map(textOf).join('');
+  return '';
+}
+
+export default function entryHeadings() {
+  return (tree) => {
+    // 1. h2 挂 id
+    visit(tree, 'element', (node) => {
+      if (node.tagName !== 'h2') return;
+      const label = textOf(node).trim();
+      const id = H2_IDS[label];
+      if (id) node.properties = { ...(node.properties ?? {}), id };
+    });
+
+    // 1b. 每一节（h2 起、到下一个 h2 前）包进 <section class="mod mod-<id>">，
+    // 让「怎么做/说人话/收益/来源/备注」五个节各自成为一种视觉模块，而不是同一种正文。
+    // 只加包裹节点，不改动原有节点的内容与顺序。
+    if (Array.isArray(tree.children)) {
+      const out = [];
+      let current = null;
+      for (const child of tree.children) {
+        const isH2 = child.type === 'element' && child.tagName === 'h2';
+        if (isH2) {
+          const id = child.properties?.id;
+          current = {
+            type: 'element',
+            tagName: 'section',
+            properties: { class: ['mod', id ? `mod-${id}` : 'mod-generic'] },
+            children: [child],
+          };
+          out.push(current);
+        } else if (current) {
+          current.children.push(child);
+        } else {
+          out.push(child); // h2 之前的导语/前言保持原位
+        }
+      }
+      tree.children = out;
+    }
+
+    // 2. 四段式标记：p 的第一个子节点是 strong 且文字命中 → 结构化
+    visit(tree, 'element', (node) => {
+      if (node.tagName !== 'p' || !Array.isArray(node.children)) return;
+      const first = node.children[0];
+      if (!first || first.type !== 'element' || first.tagName !== 'strong') return;
+      const part = PARTS[textOf(first).trim()];
+      if (!part) return;
+      const label = {
+        type: 'element',
+        tagName: 'span',
+        properties: { class: ['part-label'] },
+        children: first.children,
+      };
+      node.children[0] = label;
+      node.properties = { ...(node.properties ?? {}), class: ['howto-part', `howto-${part}`] };
+    });
+
+    // 3. 表格卡片化（≥5 列）：挂 table-cards 类 + 每格 data-label。
+    //    列名取自 thead 第一行；2–4 列事实表保持现状（E5：折行可接受）。
+    visit(tree, 'element', (node) => {
+      if (node.tagName !== 'table') return;
+      const thead = (node.children ?? []).find((c) => c.type === 'element' && c.tagName === 'thead');
+      const headRow = (thead?.children ?? []).find((c) => c.type === 'element' && c.tagName === 'tr');
+      const headCells = (headRow?.children ?? []).filter(
+        (c) => c.type === 'element' && (c.tagName === 'th' || c.tagName === 'td'),
+      );
+      if (headCells.length < 5) return;
+      const labels = headCells.map((c) => textOf(c).trim());
+      const cls = [...(Array.isArray(node.properties?.class) ? node.properties.class : node.properties?.class ? [node.properties.class] : []), 'table-cards'];
+      node.properties = { ...(node.properties ?? {}), class: cls };
+      const tbody = (node.children ?? []).find((c) => c.type === 'element' && c.tagName === 'tbody');
+      for (const row of tbody?.children ?? []) {
+        if (row.type !== 'element' || row.tagName !== 'tr') continue;
+        let i = 0;
+        for (const cell of row.children ?? []) {
+          if (cell.type !== 'element' || (cell.tagName !== 'td' && cell.tagName !== 'th')) continue;
+          cell.properties = { ...(cell.properties ?? {}), 'data-label': labels[i] ?? '' };
+          i += 1;
+        }
+      }
+    });
+  };
+}
+
+/**
+ * 从正文「怎么做」节的 **什么时候用** 段提取首句（U3/E3）。
+ * 速览卡用：d.when 缺失时（88/117 条）由本函数在构建期补齐，零内容改动。
+ * 规则：取标记后同段文字，剥掉 markdown 记号（加粗星号、双链方括号、反引号），
+ * 到第一个「；」或 60 字截断。取不到返回空串（调用方回落）。
+ */
+export function extractWhenSentence(body) {
+  const sec = splitSections(String(body ?? '')).get('怎么做');
+  if (!sec) return '';
+  const m = sec.match(/\*\*什么时候用\*\*[：:]?\s*([^\n]+)/);
+  if (!m) return '';
+  let text = m[1]
+    .replace(/\[\[([^\]|]*)\|([^\]]+)\]\]/g, '$2')
+    .replace(/\[\[([^\]]+)\]\]/g, '$1')
+    .replace(/\*\*/g, '')
+    .replace(/`/g, '')
+    .trim();
+  const cut = text.search(/[；;]/);
+  if (cut > 0 && cut <= 60) text = text.slice(0, cut);
+  else if (text.length > 60) text = `${text.slice(0, 60)}…`;
+  return text;
+}

@@ -4,12 +4,42 @@
 // 四张对照表 / 别名索引 / 关于本站（来源规则）。
 // 注意：GitHub Pages 项目站点用 dist/404.html 兜底 404——本文件构建产物即
 // dist/404.html，不需要额外配置。
+// P1-16a（03-T4）：传 noindex——404 模板同时是 /escape-guide/404/ 的可达 200 URL，
+// 不 noindex 的话会被当成普通页收录（index,follow + 自引用 canonical 是审计 T4 发现）。
+// P2-C7（02-P-15）：静态版「你是不是要找」——纯静态托管（GitHub Pages）下
+// 404.html 拿不到请求路径，服务端/JS 模糊匹配不做（零 JS 不变式 + 托管限制）；
+// 只做两档兜底：① 推荐入口行（别名索引=第一检索入口 + 目录 #all）② 高频俗称 chip。
+// chip 的 12 个别名全部取自条目 front matter 的真实 aliases（构建期经 makeEntryIndex
+// + normalizeKey 解析，缺一个即构建失败，同首页 byTitle 口径）；迁带重写的托管后
+// 再做服务端模糊匹配（见 final-report P2-C7 决策）。
+import { getCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
+import { makeEntryIndex } from '../lib/entries.mjs';
+import { normalizeKey } from '../lib/slug.mjs';
 
 const B = import.meta.env.BASE_URL;
+const entries = await getCollection('escape');
+
+// 高频俗称 chip（12 个，六域各 2）：选取标准——① 真实别名（不得编造）；
+// ② 日常口语化（散户真会打的词：事件绰号/热线数字/市井说法/行动短语），
+// 非条目正式标题；③ 六域全覆盖。构建期解析，解析不到直接 throw（不静默漏链）。
+const CHIP_ALIASES = [
+  '6124 点', '千股跌停', // 01 市场与周期：事件绰号
+  '市场先生', '安全边际', // 02 理念与理论：经典拟人
+  '看盘成瘾', '快思慢想', // 03 人性与心理：市井说法
+  '杀猪盘', '12386', // 04 规则与制度：诈骗俗称 + 热线数字
+  '空仓也是仓位', '不配资', // 05 风险与防守：行动俚语
+  '查估值', '公告去哪查', // 06 实务与查证：行动短语
+];
+const eIndex = makeEntryIndex(entries);
+const chips = CHIP_ALIASES.map((a) => {
+  const hit = eIndex.get(normalizeKey(a));
+  if (!hit) throw new Error(`404 chip 别名「${a}」无法解析到条目——别名数据或条目已变动`);
+  return { label: a, id: hit.id, title: hit.data.title };
+});
 ---
 
-<Base title="走丢了" description="这一页不在逃生路线图里。">
+<Base noindex title="走丢了" description="这一页不在逃生路线图里。">
   <div class="notfound">
     <p class="nf-emoji">🧭</p>
     <h1>你走丢了</h1>
@@ -20,6 +50,23 @@ const B = import.meta.env.BASE_URL;
       <a class="btn" href={`${B}#tables`}>四张对照表</a>
       <a class="btn" href={`${B}aliases/`}>别名索引</a>
       <a class="btn" href={`${B}about/`}>关于本站 / 来源规则</a>
+    </div>
+    <!-- P2-C7（02-P-15）：静态版「你是不是要找」——推荐入口行（nav-drop 链接语言）
+         + 高频俗称 chip 行（alias-chip 语言，构建期解析，零 JS）。 -->
+    <div class="nf-suggest">
+      <p class="nf-suggest-label">你是不是要找</p>
+      <div class="nf-suggest-entries">
+        <a href={`${B}aliases/`}>别名索引（按俗称查全部条目）</a>
+        <a href={`${B}#all`}>全部条目目录（按域浏览）</a>
+      </div>
+      <div class="nf-suggest-chips">
+        {
+          chips.map((c) => (
+            <a class="alias-chip" href={`${B}${c.id}/`} title={c.title}>{c.label}</a>
+          ))
+        }
+      </div>
+      <p class="nf-suggest-hint">点俗称直达条目。漏字、全半角冒号、同音字这类写法，去别名索引翻。</p>
     </div>
   </div>
 </Base>

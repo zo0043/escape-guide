@@ -1,0 +1,247 @@
+<p>这里是 <strong>A股散户逃生指南</strong>，2026-10-11 从 <a href="https://blog.zero43.top/">blog.zero43.top</a> 拆分出来独立成站。</p>
+<p>它借用的是 <a href="https://github.com/eternity4719/HowToLiveBetter">HowToLiveBetter</a> 那套<strong>条目骨架</strong>（每条写清成本、收益、证据等级、原始出处），但题材、内容、判据全部另起一套——不搬运它的任何正文。</p>
+<h2 id="双链怎么用">双链怎么用</h2>
+<p>本站条目之间用 <code>[[条目名]]</code> 互相引用：写标题或别名都行，不区分大小写。
+写错的条目名<strong>不会产生死链</strong>，而是渲染成橙色虚线的「未收录」标记；
+每个条目底部会自动列出<strong>反链</strong>（哪些条目提到了它）。</p>
+<p>想写字面的 <code>[[方括号]]</code>：用行内代码，或在源文件里写 <code>\[[方括号]]</code>。</p>
+<h2 id="条目格式">条目格式</h2>
+<blockquote>
+<p><strong>本节与 <code>scripts/check-content.mjs</code> 保持一致，两者不一致时以闸门为准</strong>（当前 v5，21 条断言，2026-10-12）。
+闸门由 <code>npm run build</code> 在 <code>astro build</code> 之前调用——不是外挂脚本，所以绕不过去：
+缺任何一节、缺任何一段、段顺序不对、任何字段取值非法，构建都会直接失败。</p>
+</blockquote>
+<p>每条正文固定五节：</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="text"><code><span class="line"><span>## 怎么做     —— 六段固定顺序，见下</span></span>
+<span class="line"><span>## 说人话     —— 三段段首命名（是什么/为什么发生/什么时候不成立），不许出现阿拉伯数字</span></span>
+<span class="line"><span>## 收益       —— 三档制，见下</span></span>
+<span class="line"><span>## 来源       —— 原始出处 + 核对日期（C 级如实写「无一手出处」+ 等级说明）</span></span>
+<span class="line"><span>## 备注       —— ≥3 个列表项（闸门机检数量）：适用前提/已知反例/关联条目/有效期</span></span></code></pre>
+<h3 id="怎么做必须是六段固定顺序">「怎么做」必须是六段固定顺序</h3>
+<p>概念类条目最容易写成一句格言——读起来像道理，却没有任何可执行的东西。
+所以这一节强制六段固定顺序，<strong>缺一段、或顺序不对，构建就失败</strong>
+（v2 把 <strong>算例</strong> 设为必选段；v3 把顺序固定——段齐了但排错位置同样判红）：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>顺序</th><th>段</th><th>要求</th></tr></thead><tbody><tr><td>1</td><td><strong>什么时候用</strong></td><td>翻这条的场景（触发条件，不是原则）</td></tr><tr><td>2</td><td><strong>步骤</strong></td><td>编号动作，一次能做完</td></tr><tr><td>3</td><td><strong>算例</strong></td><td><strong>必选</strong>（闸门机检 <code>**算例**</code> 标记）：一个可复算的假设案例——给初始条件（金额/价格/仓位），逐步写出每个动作的输入与输出数字，读者照着能复算出同样的结果；显式标注「（假设案例）」，算例数字不改变证据等级；真实数字复算型标注「（官方数字的复算）」并逐字引一手源</td></tr><tr><td>4</td><td><strong>常见错</strong></td><td>建议写（闸门不机检其有无）：这个场景下最常犯的错</td></tr><tr><td>5</td><td><strong>做完你会得到</strong></td><td>手上多出什么（一张清单／一个数字／一份凭证）</td></tr><tr><td>6</td><td><strong>怎么算过关</strong></td><td>可自查的验收标准，不达标就是没做完</td></tr></tbody></table>
+<p>三条附带的机检规则（v2/v3）：</p>
+<ul>
+<li><strong>汉字数下限</strong>（只数汉字，标点/数字/表格符号不计）：「怎么做」≥350 汉字，「说人话」≥150 汉字。</li>
+<li><strong>出度双链 ≥2</strong>（按唯一目标计数）：本条必须链到至少 2 个其它条目——手册感 = 网络感。</li>
+<li>双链必须写全 <code>[[目标]]</code>；双链后紧跟半角括号（<code>[[目标]](注释)</code>）会被解析成死链，注释一律用全角（<code>[[目标]]（注释）</code>）。</li>
+</ul>
+<h3 id="说人话必须是三段段首命名">「说人话」必须是三段段首命名</h3>
+<p>这一节只负责解释——<strong>不许引入收益栏之外的新数字</strong>（「说人话」里出现阿拉伯数字，构建直接失败）。三段必须段首命名：</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="text"><code><span class="line"><span>是什么：          一句话说清这条在说什么</span></span>
+<span class="line"><span>为什么发生：       用大白话讲清为什么这样、为什么有效</span></span>
+<span class="line"><span>什么时候不成立：   这条失效的边界条件</span></span></code></pre>
+<h3 id="收益必须是三档之一">「收益」必须是三档之一</h3>
+<p>这一节曾经写过「按口径给量级」，但实测 41 条通篇没有一个数字，全是形容词。
+现在只有两种合法开头：</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="text"><code><span class="line"><span>量级（口径：亏损）：&#x3C;必须真的含阿拉伯数字>……这个数怎么用：……</span></span>
+<span class="line"><span>无量级（方向性）：&#x3C;说明为什么算不出></span></span></code></pre>
+<ul>
+<li>写「量级」却通篇没有阿拉伯数字，构建会直接失败——那又变回形容词充数了。<strong>算不出就如实说算不出</strong>，这份指南可信度靠的就是这条。</li>
+<li>行内「量级（口径：X）」的 X 必须 ∈ 五值词表（亏损|收益|时间|自由|处罚），且与 front matter <code>metric</code> 逐字一致（不一致构建失败）；量纲说明写在冒号之后的正文里，不要塞进括号。</li>
+<li>「量级」档结尾带一句**「这个数怎么用」**（这个数对读者决策的作用）；「无量级（方向性）」档保持现状即可。</li>
+</ul>
+<p>front matter 完整模板——照抄即可过闸门（临时 canary 条目已按本模板验证过，见交付日志）：</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="yaml"><code><span class="line"><span style="color:#85E89D">title</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"条目标题"</span><span style="color:#6A737D">            # 必填；双链写标题或别名都行，不区分大小写</span></span>
+<span class="line"><span style="color:#85E89D">description</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"一句话摘要"</span><span style="color:#6A737D">      # 必填；不许含 [[…]]（该字段会原样进入 meta/og/RSS，泄漏字面括号）</span></span>
+<span class="line"><span style="color:#85E89D">chapter</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"03 人性与心理"</span><span style="color:#6A737D">      # 必填，六值白名单：01 市场与周期/02 理念与理论/03 人性与心理/04 规则与制度/05 风险与防守/06 实务与查证</span></span>
+<span class="line"><span style="color:#85E89D">date</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">2026-10-12</span><span style="color:#6A737D">             # 可选：日期</span></span>
+<span class="line"><span style="color:#85E89D">weight</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">50</span><span style="color:#6A737D">                   # 可选：章内排序权重（大者在前）</span></span>
+<span class="line"><span style="color:#85E89D">layer</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"执行"</span><span style="color:#6A737D">                # 必填，四值枚举（定义见下表）；闸门机检，缺失/非法构建失败</span></span>
+<span class="line"><span style="color:#85E89D">aliases</span><span style="color:#E1E4E8">: []                  </span><span style="color:#6A737D"># 可选：双链别名</span></span>
+<span class="line"><span style="color:#85E89D">tags</span><span style="color:#E1E4E8">: []                     </span><span style="color:#6A737D"># 可选</span></span>
+<span class="line"><span style="color:#85E89D">cost</span><span style="color:#E1E4E8">: { </span><span style="color:#85E89D">money</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"0"</span><span style="color:#E1E4E8">, </span><span style="color:#85E89D">time</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"少"</span><span style="color:#E1E4E8">, </span><span style="color:#85E89D">will</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"否"</span><span style="color:#E1E4E8"> }   </span><span style="color:#6A737D"># 钱=0|少|多  时间=少|中|多  毅力=否|些|是</span></span>
+<span class="line"><span style="color:#85E89D">gain</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"大"</span><span style="color:#6A737D">                   # 大|中|小</span></span>
+<span class="line"><span style="color:#85E89D">metric</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"亏损"</span><span style="color:#6A737D">               # 亏损|收益|时间|自由|处罚 —— 收益数字的量纲，与正文行内口径逐字一致</span></span>
+<span class="line"><span style="color:#85E89D">evidence</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"B"</span><span style="color:#6A737D">                # A|B|C（见「证据等级」）</span></span>
+<span class="line"><span style="color:#85E89D">disputed</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">false</span><span style="color:#6A737D">              # 可选：A/B 级存在反方证据时置 true</span></span>
+<span class="line"><span style="color:#85E89D">checked</span><span style="color:#E1E4E8">: </span><span style="color:#79B8FF">2026-10-08</span><span style="color:#6A737D">          # 来源核对日期，对所有条目必填（见「来源规则」）</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D"># ── 一屏速览字段（全部可选；渲染为宽屏桌面一屏的四张事实卡，窄屏 2×2 布局；缺省回落到 成本/收益/证据 结构化事实）──</span></span>
+<span class="line"><span style="color:#85E89D">lede</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"一句话结论"</span><span style="color:#6A737D">            # 这条到底在说什么</span></span>
+<span class="line"><span style="color:#85E89D">when</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"什么处境下用这条"</span><span style="color:#6A737D">        # 这条适用的处境（一句话）</span></span>
+<span class="line"><span style="color:#85E89D">keyNumber</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"一个数字（含口径）"</span><span style="color:#6A737D"> # 最能说明问题的那一个数（含口径）</span></span>
+<span class="line"><span style="color:#85E89D">maxRisk</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"用错这条会怎么死"</span><span style="color:#6A737D">     # 最大风险（一句话）</span></span></code></pre>
+<p><strong><code>layer</code> 四层定义</strong>（与 <code>src/content.config.ts</code> 注释逐字一致，改一处必须改另一处）：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>layer</th><th>定义</th></tr></thead><tbody><tr><td>理念</td><td>讲清「为什么会这样」的概念/机制/理论</td></tr><tr><td>执行</td><td>可以直接照做的动作、纪律、流程、自查</td></tr><tr><td>档案</td><td>按人或按事件立档，核心是「发生过什么 + 可核数字」</td></tr><tr><td>工具</td><td>去哪里查、怎么查的入口（查* 类）</td></tr></tbody></table>
+<p>归类按条目性质，章节只作默认值。<strong>不要合并同题条目</strong>——本站刻意把同一主题拆成理念层与执行层两条，<code>layer</code> 是读者唯一的层级信号。</p>
+<h2 id="证据等级">证据等级</h2>
+<p>等级只回答一个问题：<strong>这个说法的数字可不可信</strong>。它不衡量收益大小。</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>等级</th><th>含义</th></tr></thead><tbody><tr><td><strong>A</strong></td><td>有一手数字：官方统计（上交所统计年鉴、证监会、中国结算）或同行评议研究，正文必须给出具体数字；推导型/定义性事实见「来源规则」（数字由推导确定）</td></tr><tr><td><strong>B</strong></td><td>有监管原文或已生效的规则、判决，或同行评议文献/书目引用（只引定性结论、不引具体统计数），事实确定但无法量化</td></tr><tr><td><strong>C</strong></td><td>经验或行业共识，没有可直接引用的出处</td></tr></tbody></table>
+<h3 id="条目级等级怎么定聚合规则">条目级等级怎么定（聚合规则）</h3>
+<p>一条条目往往引用多个来源，等级没法逐个来源都取。本站只用一种算法，写在这里免得读者猜：</p>
+<blockquote>
+<p><strong><code>evidence</code> 取「正文主张的主要依据」的等级。</strong> 判断方法：把这条最核心的那个数字或那句话换掉，看条目主张还站不站得住——那个来源就是主要依据。
+<strong>背景性与叙事性来源允许低一级，但必须在「来源」节逐条标级</strong>（站内写法如「机构与失业率叙事为 A/B」「护送船团机制为 B/C」）。
+<strong>含低一级来源时不降级、不改判</strong>：A 级条目里出现 B/C 级背景，不因此变成 B。</p>
+</blockquote>
+<p>由这条直接得出的三个推论：</p>
+<ul>
+<li><strong>A 级是「核心数字 A」，不是「全部来源 A」。</strong> 两条同为 A 的条目，一条可能含 C 级背景、一条不含，这不妨碍它们同为 A；读者该看的是核心数字那一行的等级。</li>
+<li><strong>转引不升格。</strong> 引用站内其它条目的数字时，<strong>那一项的等级不高于被引条目的核验强度</strong>；凡本条没有亲手复算的转引，按书目/二手引用处理、最高 B——它不会因为被写进一条 A 级条目就变成 A。所以 <a class="wl" href="/escape-guide/%E6%B3%A1%E6%B2%AB%E7%9A%84%E5%85%B1%E5%90%8C%E7%BB%93%E6%9E%84%E4%BA%94%E6%AC%A1%E5%B4%A9%E7%9B%98%E9%87%8C%E7%9A%84%E5%90%8C%E4%B8%80%E5%A5%97%E5%89%A7%E6%9C%AC/">泡沫的共同结构：五次崩盘里的同一套剧本</a> 拿五场 A 级崩盘当骨架，仍记 B。</li>
+<li><strong>降级只发生在主要依据本身降级时</strong>（来源打不开了、原研究被撤稿、规则修订了），并且要同步更新 <code>checked</code>。</li>
+</ul>
+<h3 id="c-级拆三个子档">C 级拆三个子档</h3>
+<p>「C 级」一条里其实装着三种不同的情况，读者看到的「不可核」不是同一件事。本站把 C 拆成三个子档；<strong>front matter 的 <code>evidence</code> 仍只写 <code>C</code></strong>（不改字段），子档写在「来源」节，句式固定为 <code>等级说明：C1 史料不可核</code>，可机读检索：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>子档</th><th>含义</th><th>本站实例</th></tr></thead><tbody><tr><td><strong>C1 史料不可核</strong></td><td>事件是真的，但当时没留下可核的价格序列或账目；引用的是后世研究与辞条</td><td><a class="wl" href="/escape-guide/1637%E9%83%81%E9%87%91%E9%A6%99%E7%8B%82%E7%83%AD%E7%AC%AC%E4%B8%80%E5%9C%BA%E6%9C%89%E8%AE%B0%E5%BD%95%E7%9A%84%E6%B3%A1%E6%B2%AB/">1637郁金香狂热:第一场有记录的泡沫</a></td></tr><tr><td><strong>C2 民间共识无出处</strong></td><td>共识性说法（祖训、口诀、行业或舆论俗称），没有可引用的一手出处，也不编造链接</td><td><a class="wl" href="/escape-guide/%E5%88%AB%E6%BB%A1%E4%BB%93%E5%88%AB%E5%8D%95%E5%90%8A/">别满仓，别单吊</a></td></tr><tr><td><strong>C3 二手通说待核</strong></td><td>机制表述来自二手通说，一手研究没取到；只引方向、不引数字</td><td><a class="wl" href="/escape-guide/%E6%83%85%E7%BB%AA%E4%B8%8E%E5%86%B3%E7%AD%96%E5%8E%8B%E5%8A%9B%E4%B9%8B%E4%B8%8B%E4%BA%BA%E9%80%80%E5%9B%9E%E4%B9%A0%E6%83%AF/">情绪与决策:压力之下人退回习惯</a></td></tr></tbody></table>
+<p>C 级条目的例外不变：「来源」一节如实写「无一手出处」，<strong>不编造链接</strong>（见「来源规则」）。</p>
+<p><strong>「收益大」不等于「证据 A」</strong>——这是两个正交维度。另有一个独立维度是 <code>metric</code>（口径）：允许取值是「亏损、收益、时间、自由、处罚」，指这条说法最终落在哪个量纲上，<strong>不同口径之间不做比较</strong>（「少亏 5 万」和「少坐 2 年牢」不能折算）。</p>
+<blockquote>
+<p><strong>词表 ≠ 用量</strong>：上面五个是<strong>允许写</strong>的取值，不代表每种都有条目在用。写不存在的口径会让构建失败。</p>
+</blockquote>
+<h2 id="来源规则">来源规则</h2>
+<ul>
+<li>只引<strong>原始出处</strong>：证监会 / 交易所 / 中国结算 / 统计局 / 最高法等官方文件，同行评议的原始论文，或人物本人的<strong>原始文本</strong>（见下条）。</li>
+<li><strong>原始文本类出处</strong>（人物自己的出版物 / 公开信件，如投资理论）：书引「作者 + 书名 + 年份」（能确定章节则带章节），并在「来源」注明「书目引用，原文未逐条核对，无 URL」；公开信件用 <code>curl</code> 对官方原文核验并附 URL。此类出处默认 <strong>B 级</strong>（归属事实确定、不可量化）；带独立可核一手数字时才可升 A 级。</li>
+<li><strong>推导型出处</strong>（数学/定义性事实，如亏损回本不对称、期望值）：「来源」写推导过程（公式 + 数值示例），无需外部出处，记 <strong>A 级</strong>——数字由推导确定，比任何文献都确定。</li>
+<li><strong>行为科学类出处</strong>（认知偏差/群体心理）：同行评议论文引「作者 + 题名 + 期刊/年份」，原始文本按书目规则；本指南当前环境无法打开学术出版社原文核验数字（2026-10-11 实测：Science/Springer 均为付费墙或机器人验证页），故此类条目<strong>只引定性结论、不引具体统计数</strong>，默认 <strong>B 级</strong>。</li>
+<li><strong>不引</strong>知乎、微信公众号、股吧、财经自媒体等二手转述——即使它们说的是对的，也要回到它引的那份原件。</li>
+<li><strong>C 级条目的例外</strong>：「来源」一节如实写「民间共识（C 级），无一手出处」，<strong>不编造链接</strong>。</li>
+<li><code>checked</code> 对<strong>所有条目必填</strong>（C 级也不例外）：填你核对、写下这条的日期——A股规则会变，这个日期就是说法的保质期。</li>
+<li>每个<strong>带链接</strong>的来源都要标「核对于 YYYY-MM-DD」，并且真的用 <code>curl</code> 打开过——<strong>打不开的链接等于没有来源</strong>。</li>
+</ul>
+<h3 id="三种算不出的标注语义不同">三种「算不出」的标注，语义不同</h3>
+<p>正文里出现这三种标注时，它们不是同一种「没有」，别混用：</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>标注</th><th>含义</th><th>本站实例</th></tr></thead><tbody><tr><td><strong>需人工核对</strong></td><td>有口径，但本站取不到或没逐条核（付费墙、反爬、原文太长）</td><td>标普两点位需人工核对</td></tr><tr><td><strong>无公开统计</strong></td><td><strong>口径本身不存在</strong>——没有任何机构发布过这个数</td><td>1993–94 年散户平均亏损</td></tr><tr><td><strong>无单一官方口径</strong></td><td>各家都在发布，但统计范围与定义不同，无法相加或对比</td><td>各国救助规模合计</td></tr></tbody></table>
+<p>这三条的权威定义见 <a class="wl" href="/escape-guide/1993%E5%88%B01994%E5%8D%83%E7%82%B9%E5%88%B0%E4%B8%89%E7%99%BE%E7%82%B9/">1993到1994:千点到三百点</a> 与 <a class="wl" href="/escape-guide/2008%E5%85%A8%E7%90%83%E9%87%91%E8%9E%8D%E5%8D%B1%E6%9C%BA%E9%9B%B7%E6%9B%BC%E9%82%A3%E4%B8%80%E5%A4%9C/">2008全球金融危机:雷曼那一夜</a>；上面这张表是图例，不是新规定。拿不准时按最谨慎的那条写，<strong>不要用「无公开统计」去描述一个只是你没拿到的口径</strong>。</p>
+<blockquote>
+<p><strong>免责声明</strong>：本站是做信息整理与自我备忘，不是投资建议，也不构成法律意见。规则类条目请以官方最新发布为准；涉及具体纠纷请咨询执业律师。</p>
+</blockquote>

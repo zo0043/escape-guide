@@ -17,7 +17,11 @@ export async function GET(context) {
         title: e.data.title,
         description: e.data.description,
         link: `${B}${e.id}/`,
-        pubDate: e.data.checked ?? e.data.date ?? new Date(),
+        // P2-C10（03-T8）：pubDate 优先取条目 date（RSS 时间线=内容时间），
+        // 无 date 回退 checked（来源核对日期）。现有条目 date 与 checked
+        // 全同值（写下即核对），改后输出与改前一致；今后若把 date 与
+        // checked 分离，RSS 时间线即跟随 date。
+        pubDate: e.data.date ?? e.data.checked ?? new Date(),
         categories: [e.data.chapter, `证据${e.data.evidence}`, `口径${e.data.metric}`],
       }))
       .sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate)),

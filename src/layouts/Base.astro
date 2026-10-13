@@ -1,4 +1,6 @@
 ---
+import { getCollection } from 'astro:content';
+import tables from '../data/compare.json';
 import '../styles/global.css';
 
 interface Props {
@@ -6,13 +8,41 @@ interface Props {
   description?: string;
   /** 仅首页传：sticky 页头里渲染页内锚点（开始/六域/对照表/全部条目，E7） */
   anchors?: boolean;
+  /** 仅 404 页传：robots 输出 noindex,nofollow，且不输出自引用 canonical（P1-16a，03-T4） */
+  noindex?: boolean;
 }
 
-const { title, description, anchors } = Astro.props;
+const { title, description, anchors, noindex } = Astro.props;
 const siteTitle = 'A股散户逃生指南';
 // 本站部署在主站域名的子路径下（/escape-guide/），所有内部链接必须带上前缀。
 // Astro 不会自动改写硬编码的 href，漏一个就是 404——所以统一走 BASE。
 const B = import.meta.env.BASE_URL;
+
+// P1-9（02-P-02）：全局导航「域与表」入口——六域 + 四对照表。
+// 六域与 index.astro:14 同口径（集合 chapter 去重 + zh 排序，拆「编号 名称」）；
+// 对照表与 index.astro:173 同形状（${B}compare/<slug>/）。
+// 零 JS 下拉：桌面 hover/focus-within 展开（global.css 内 @media(hover) 守卫），
+// 触屏点按（details 原生 open）。
+const _navEntries = await getCollection('escape');
+const navDomains = [...new Set(_navEntries.map((e) => e.data.chapter))]
+  .sort((a, b) => a.localeCompare(b, 'zh'))
+  .map((chapter) => {
+    const [num, ...rest] = chapter.split(' ');
+    return { num, name: rest.join(' ') };
+  });
+const navTables = tables.tables.map((t) => ({ slug: t.slug, title: t.title }));
+
+// P2-A6（02-P-23）：全局导航 aria-current——构建期按 Astro.url.pathname 精确匹配
+//（写法参照 compare/[table].astro:105 既有的 aria-current={x === y ? 'page' : undefined}）。
+// 处理：site-title 是品牌 logo 不是导航目标，不给 aria-current；
+// 首页的「当前」落在「目录」上（href 指向首页的导航项，见下 B6a），避免与 site-title 双标。
+const path = Astro.url.pathname;
+const isHome = path === B;
+const isAliases = path === `${B}aliases/`;
+const isAbout = path === `${B}about/`;
+const curDomain = navDomains.find((d) => path === `${B}topic/${d.num}/`)?.num ?? '';
+const curTable = navTables.find((x) => path === `${B}compare/${x.slug}/`)?.slug ?? '';
+
 const pageTitle = title ? `${title} · ${siteTitle}` : siteTitle;
 const desc =
   description ??
@@ -31,8 +61,14 @@ const themeDark = '#14161a';
     <meta name="description" content={desc} />
     <meta name="theme-color" content={themeLight} media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content={themeDark} media="(prefers-color-scheme: dark)" />
+    <!-- P1-16b（03-T5）：ico 与 PNG 都声明，按 sizes 先后排列——
+         浏览器默认请求 /favicon.ico 在子路径部署下会 404，显式 link 兜住 -->
+    <link rel="icon" type="image/x-icon" href={`${B}zo0043_16x16.ico`} sizes="16x16" />
+    <link rel="icon" type="image/x-icon" href={`${B}zo0043_32x32.ico`} sizes="32x32" />
     <link rel="icon" type="image/png" href={`${B}zo0043.png`} />
-    <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />
+    <!-- P1-16a（03-T4）：404 页（noindex）不输出自引用 canonical——
+         否则 /escape-guide/404/ 会带一个指向自己的 canonical，语义混乱 -->
+    {!noindex && <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />}
     <link
       rel="alternate"
       type="application/rss+xml"
@@ -47,7 +83,13 @@ const themeDark = '#14161a';
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    {import.meta.env.PROD && <meta name="robots" content="index,follow" />}
+    <!-- P1-16a（03-T4）：404 页恒为 noindex,nofollow（不分 PROD/dev——404 在任何环境都不该被索引）；
+         其余页面维持原行为（仅 PROD 输出 index,follow） -->
+    {noindex ? (
+      <meta name="robots" content="noindex,nofollow" />
+    ) : (
+      import.meta.env.PROD && <meta name="robots" content="index,follow" />
+    )}
   </head>
   <body>
     <a class="skip-link" href="#main">跳到正文</a>
@@ -65,9 +107,34 @@ const themeDark = '#14161a';
               </>
             )
           }
-          <a href={B}>目录</a>
-          <a href={`${B}aliases/`}>别名索引</a>
-          <a href={`${B}about/`}>关于本站</a>
+          <details class="nav-drop">
+            <summary class="nav-drop-sum" title="六域地图与对照表">域与表</summary>
+            <div class="nav-drop-menu">
+              <div class="nav-drop-menu-in">
+                <div class="nav-drop-group">
+                  <span class="nav-drop-glabel">六域</span>
+                  {navDomains.map((d) => (
+                    <a href={`${B}topic/${d.num}/`} aria-current={d.num === curDomain ? 'page' : undefined}>
+                      {d.num} {d.name}
+                    </a>
+                  ))}
+                </div>
+                <div class="nav-drop-group">
+                  <span class="nav-drop-glabel">对照表</span>
+                  {navTables.map((x) => (
+                    <a href={`${B}compare/${x.slug}/`} aria-current={x.slug === curTable ? 'page' : undefined}>
+                      {x.title}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </details>
+          <!-- P2-B6a（02-P-03 前半）：「目录」不再自链首页根——直指 #all 锚点，
+               子页访问也一步到全部条目列表（审计时点 :68 为 href={B} 自链） -->
+          <a href={`${B}#all`} aria-current={isHome ? 'page' : undefined}>目录</a>
+          <a href={`${B}aliases/`} aria-current={isAliases ? 'page' : undefined}>别名索引</a>
+          <a href={`${B}about/`} aria-current={isAbout ? 'page' : undefined}>关于本站</a>
           <a href="https://blog.zero43.top/">主站博客</a>
         </nav>
       </div>

@@ -39,6 +39,7 @@ const TABLE_DOMAIN: Record<string, string> = {
   masters: '02',
   philosophy: '02',
   biases: '03',
+  // 2026-10-15 审查项 4：triggers(触发索引)横跨多个域,不挂单域 chip,不加映射。
 };
 const domainNum = TABLE_DOMAIN[t.slug];
 ---
@@ -66,17 +67,22 @@ const domainNum = TABLE_DOMAIN[t.slug];
               // P1-12（02-P-13）：行级深链——id 用行首事件名 slugify（复用 lib/slug.mjs，
               // 与条目 URL 同一套规则）；行首 4 表 70 行实测无撞 id（t11 交付报告有记录）。
               const rowId = slugify(r.c[0]);
+              // 2026-10-15 审查项 4：回链接列默认首列(既有 4 表行为零变化)；
+              // triggers 表经 linkCol: 1 指定第二列(条目逐字标题)为回链目标。
+              const linkCol: number = t.linkCol ?? 0;
               return (
                 <tr id={rowId}>
                   {r.c.map((cell: string, i: number) =>
                     i === 0 ? (
                       <th scope="row" class="row-head" data-label={t.cols[0]}>
-                        {entry ? <a href={`${B}${entry.id}/`}>{cell}</a> : cell}
+                        {linkCol === 0 && entry ? <a href={`${B}${entry.id}/`}>{cell}</a> : cell}
                         {/* 行内「#」锚：纯 CSS a::after content（零 JS），见 global.css .row-anchor */}
                         <a class="row-anchor" href={`#${rowId}`} aria-label={`「${cell}」行的锚点`}></a>
                       </th>
                     ) : (
-                      <td data-label={t.cols[i]}>{cell}</td>
+                      <td data-label={t.cols[i]}>
+                        {linkCol === i && entry ? <a href={`${B}${entry.id}/`}>{cell}</a> : cell}
+                      </td>
                     )
                   )}
                   <td class={evClass(r.ev)} data-label="证据">

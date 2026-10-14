@@ -18,7 +18,10 @@ const B = import.meta.env.BASE_URL;
 const entries = await getCollection('escape');
 
 const ESSENCE = {
-  '01': '这一域回答：市场到底是什么。钱从哪来、谁在跟你交易、历史上极端行情里发生过什么。看不懂这一域，后面所有的技巧都只是赌运气。',
+  // 2026-10-15 审查项 5：01 域 ESSENCE 降格「证据层」——原句市场优先 + 预测味
+  // （「看不懂这一域，后面所有的技巧都只是赌运气」与总纲双重矛盾）。
+  // 措辞 = 审查原文（引号按站内「」体例）。
+  '01': '本域是证据层：逃生不靠预测，靠「发生过什么」的可核记录——读它不是学预测，是给止血与设限拿底气。',
   '02': '这一域回答：哪些做法被长期验证过、哪些只是听起来有道理。原则背后都有数学或数据，条目尽量把它挖出来。',
   '03': '这一域回答：你为什么会做错。偏差不是「不够聪明」，而是人脑的默认设置——认识它、给它设防，比发誓「我要理性」有用得多。',
   '04': '这一域回答：规则怎么保护你、被坑了找谁、红线在哪里。散户最大的劣势是信息，最大的优势是规则对所有人一样。',
@@ -27,7 +30,9 @@ const ESSENCE = {
 };
 
 const CHECK = {
-  '01': ['我能说清自己买的东西靠什么赚钱吗？', '我知道当前市场处在什么位置吗（估值/情绪/资金）？'],
+  // 2026-10-15 审查项 5：01 域自检句带预测味（「我知道当前市场处在什么位置吗」）
+  // → 按审查原文换（对齐地图环节二过关标准「能报出两次以上崩盘的共同结构」）。
+  '01': ['我能说清自己买的东西靠什么赚钱吗？', '我能报出两次崩盘的共同结构吗？'],
   '02': ['我用的方法是被长期验证的，还是最近听说很灵的？', '我能说出这个方法的失效条件吗？'],
   '03': ['最近三次亏损，是判断错还是情绪驱动的操作？', '我有没有在亏损时加过仓？'],
   '04': ['我知道被上市公司坑了该走哪条官方路径吗？', '我知道自己账户里每项费用的规则吗？'],
@@ -61,6 +66,13 @@ const LAYER_GLOSS: Record<string, string> = {
   工具: '去哪里查、怎么查的入口（查* 类）',
 };
 
+// 2026-10-15 审查项 5：档案层声明——档案（37 条）是引用库，不是阅读顺序。
+// layer 机检：只有 01（18 条）/ 02（19 条）两域有档案层，按 layer 键注即只落这两页
+// （与审查「01/02 域页档案段各加一句」同一范围）；单层域不走此处（单层域无档案层）。
+const LAYER_NOTE: Record<string, string> = {
+  档案: '此层是引用库，不是阅读顺序',
+};
+
 // 每个域指向与它相关的对照表（P1-C 导航层）
 const RELATED_TABLES: Record<string, string[]> = {
   '01': ['crashes'],
@@ -78,6 +90,8 @@ const nA = items.filter((e) => e.data.evidence === 'A').length;
     <p class="entry-crumb">第 {num} 域 · {items.length} 条 · A 级证据 {nA} 条</p>
     <h1 class="hero-title">{name}</h1>
     <p class="topic-essence">{ESSENCE[num]}</p>
+    <!-- 2026-10-15 审查项 6：域编号声明（与首页 6 张域卡同句；重编号为 URL 单向门，已否决） -->
+    <p class="topic-coord">编号是地图坐标，不是学习顺序，顺序见路径与总纲</p>
   </section>
 
   <section class="section">
@@ -104,6 +118,9 @@ const nA = items.filter((e) => e.data.evidence === 'A').length;
           <h3 class={`topic-layer-head layer-${g.layer}`} id={`layer-${g.layer}`}>
             {g.layer} · {g.items.length} 条
           </h3>
+        )}
+        {layerGroups.length > 1 && LAYER_NOTE[g.layer] && (
+          <p class="topic-layer-note">{LAYER_NOTE[g.layer]}</p>
         )}
         <ul class="topic-list">
           {g.items.map((e) => (

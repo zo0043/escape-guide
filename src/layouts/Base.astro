@@ -139,7 +139,10 @@ const themeDark = '#14161a';
         </nav>
       </div>
     </header>
-    <main class="wrap" id="main">
+    <!-- D5（handover §3）：tabindex="-1" 让 skip-link 激活后焦点真正落到 <main>
+         （否则浏览器焦点留在文档级，读屏/键盘用户「跳到正文」名不副实）；
+         回顶 chip 与页内锚点同样以 #main 为目标，一并受益。 -->
+    <main class="wrap" id="main" tabindex="-1">
       <slot />
     </main>
     <footer class="site-footer">
@@ -149,7 +152,7 @@ const themeDark = '#14161a';
           <a href={`${B}rss.xml`}>RSS 订阅</a> · <a href={`${B}aliases/`}>别名索引</a>
         </p>
         <p class="footer-fine">
-          本站做信息整理与自我备忘，不是投资建议，也不构成法律意见；规则类条目请以官方最新发布为准，涉及具体纠纷请咨询执业律师。
+          本站做信息整理与自我备忘，不是投资建议，也不构成法律意见；规则类条目请以官方最新发布为准，涉及具体纠纷请咨询执业律师。市场历史表现不代表未来，据此操作风险自担。
         </p>
       </div>
     </footer>

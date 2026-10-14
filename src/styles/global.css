@@ -699,6 +699,12 @@ article:has(.concl-bar) { --concl-h: 2.2rem; }
   margin-top: 2.2rem;
 }
 .entry-body { max-width: var(--measure); margin-top: 0.5rem; }
+/* D1（handover §3）：29/122 条目页移动端横向溢出（长英文/长数字不换行）。
+   长串容器加 overflow-wrap:anywhere——仅在「单个词比行宽还长」时才生效
+   （CJK/正常文本的折行行为不变），长数字/长英文/长符号获得折行位置，
+   不再把页面顶出横向滚动。.quick-card/.cb-num 是条目页的大数字容器
+   （「22,730.35」级长数字同族问题，P1-11 同源）。 */
+.entry-body, .quick-card, .cb-num { overflow-wrap: anywhere; }
 .entry-body p { margin: 1.05rem 0; }
 .entry-body h2 {
   font-family: var(--serif);
@@ -1053,7 +1059,18 @@ html { scroll-behavior: smooth; }
     background: var(--accent);
     transform: scaleX(0);
     transform-origin: left center;
-    animation: read-progress-grow linear both;
+    /* D2（handover §3）：`animation` 简写与 `animation-timeline` 分两行写时，
+       压缩器（lightningcss）会把两者合并成单条 `animation: … scroll(root)`——
+       scroll(root) 不是 animation 简写的合法值，浏览器整条声明丢弃，
+       进度条全浏览器失效（minify 输出已复现）。改长hand写法后压缩器原样保留
+       `animation-timeline:scroll(root)`（压缩后验证通过）。
+       duration 给 1s：滚动驱动动画的进度由 scroll 时间线决定，duration 只决定
+       关键帧的时间尺度，视觉进度仍与滚动位置一一对应。 */
+    animation-name: read-progress-grow;
+    animation-duration: 1s;
+    animation-timing-function: linear;
+    animation-iteration-count: 1;
+    animation-fill-mode: both;
     animation-timeline: scroll(root);
   }
   @keyframes read-progress-grow {
@@ -1084,4 +1101,50 @@ html { scroll-behavior: smooth; }
   .quick-cards { grid-template-columns: repeat(2, 1fr); }
   .entry-body a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.75em; color: #555; }
   .mod, .section { break-inside: avoid; }
+}
+
+/* ────────────────────────────────────────────────────────────────────────────────
+   2026-10-15 IA 措辞+数据批（docs/20261015-escape-principle-review.md §3 项 1/3/5/6
+   + handover P0-6）——追加块：只加新类名、不改任何既有规则、零 JS。
+   各新类均为既有类无法正确承载的最小样式：
+   · .outline-card     首页「逃生总纲」卡（项 1）与 h2 的间距（.start-card 默认无外边距）
+   · .sc-bridge        路径卡「长文只读一句」桥（P0-6；PATH 01 第 2 步 / PATH 03 第 1 步）
+   · .sc-end           路径卡「终点」行（项 1/3；不可复用 .sc-path——其 margin-top:auto
+                       会在两条 meta 行间均分自由空间，破坏布局）
+   · .topic-coord      域页头部「编号是坐标不是顺序」声明句（项 6；.entry-crumb 的
+                       2.4rem 上边距在 topic-head 里间距过大）
+   · .topic-layer-note 档案层「引用库」声明句（项 5，仅 01/02 域有档案层）
+   ──────────────────────────────────────────────────────────────────────────────── */
+.outline-card { margin-top: 1.5rem; }
+.sc-bridge {
+  font-size: 0.8rem;
+  line-height: 1.8;
+  color: var(--fg-dim);
+}
+.sc-bridge b { color: var(--fg); font-weight: 600; }
+.sc-bridge a { color: var(--fg-dim); }
+.sc-bridge a:hover { color: var(--accent); }
+.sc-end {
+  margin-top: 0.15rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--rule);
+  font-size: 0.82rem;
+  line-height: 1.9;
+  color: var(--fg-dim);
+}
+.sc-end b { color: var(--fg); font-weight: 600; }
+.sc-end a { color: var(--fg); }
+.sc-end a:hover { color: var(--accent); }
+.topic-coord {
+  max-width: 34em;
+  margin: 0.9rem 0 0;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--fg-dim);
+}
+.topic-layer-note {
+  margin: 0.45rem 0 0;
+  padding-left: 0.8rem;
+  font-size: 0.8rem;
+  color: var(--fg-dim);
 }

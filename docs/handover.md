@@ -37,7 +37,7 @@ node scripts/check-content.mjs   # 单独跑闸门
 - 数据：`src/data/compare.json`（4 张对照表 70 行）
 - 库：`src/lib/`（entries / paths / aliases / wikilinks / slug / headings）
 - 构建产物 `dist/` 是 gitignored，随时可删重建；**旧 dist 不可依赖**
-- 规格文档：`docs/content-v2-spec.md`；审计记录：`docs/audit/00-final-report.md`（P0×4/P1×16/P2）与 `docs/audit/20261012-impl/`（两轮实施 24/24 验收）
+- 规格文档：`docs/content-v2-spec.md`；审计记录：`docs/audit/00-final-report.md`（P0×4/P1×16/P2）与 `docs/audit/20261012-impl/`（两轮实施 24/24 验收）；逃生第一性原理审查：`docs/20261015-escape-principle-review.md`（2026-10-15，旅程盘点+7 项调整清单+待站长拍板 D1-D5）
 
 ### Agent team 使用约束（本环境实测）
 - **并发上限 = 1**：同时派多个 worker 会全部 429 upstream_rate_limited。必须串行：派一个 → `wait_for_agents` → 读结果 → 再派下一个

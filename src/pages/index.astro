@@ -55,6 +55,13 @@ const byTitle = (title) => {
 const nA = entries.filter((e) => e.data.evidence === 'A').length;
 const nDisputed = entries.filter((e) => e.data.disputed).length;
 const nDomains = domains.length;
+// 2026-10-15 审查项 5（D3）：stat「122 条可执行条目」过度承诺 → 「122 条 · 42 条可直接照做」。
+// 42 的机检口径 = frontmatter layer 计数：执行 37 + 工具 7（理念 43 / 档案 37 不可直接照做，
+// 两种用途用措辞分开）；layer 四值定义与 content.config.ts 一致，随集合构建期重算不硬编码。
+const nDirect = entries.filter((e) => {
+  const L = (e.data as any).layer;
+  return L === '执行' || L === '工具';
+}).length;
 ---
 
 <Base anchors>
@@ -75,7 +82,7 @@ const nDomains = domains.length;
     <div class="stat-wall">
       <div>
         <span class="stat-num">{entries.length}</span>
-        <span class="stat-label">条可执行条目</span>
+        <span class="stat-label">条 · {nDirect} 条可直接照做</span>
       </div>
       <div>
         <span class="stat-num">{nDomains}</span>
@@ -94,14 +101,32 @@ const nDomains = domains.length;
     </div>
 
     <p class="trust-line">
-      本站的来源规则只有一条：<b>打不开的链接等于没有来源</b>。每条都标 A/B/C 证据等级与核对日期；核得到但没逐条核的写「需人工核对」，口径本身不存在的写「无公开统计」，各家定义不一的写「无单一官方口径」——三种「算不出」不是同一种没有。宁可少写一条，不编一个数字。
+      本站的来源规则只有一条：<b>打不开的链接等于没有来源</b>。每条都标 A/B/C 证据等级与核对日期；核得到但没逐条核的写「需人工核对」，口径本身不存在的写「无公开统计」，各家定义不一的写「无单一官方口径」——三种「算不出」不是同一种没有。宁可少写一条，不编一个数字。本站不是不亏保证：逃生上限是亏损不毁生活，用保命钱入市者，本站任何方法都救不了你。
     </p>
+  </section>
+
+  <!-- 2026-10-15 审查项 1：地图升格总纲——hero 与 START HERE 之间加「逃生总纲」卡，
+       整卡锚向地图条目（byTitle 校验，查不到构建即 throw）。措辞 = 审查项 1「为什么」
+       + 地图条目 lede 原文。地图条目不动 chapter（审查裁定：升格胜于搬家）。 -->
+  <section class="section" id="outline">
+    <p class="section-label">ESCAPE OUTLINE</p>
+    <h2 class="section-title">逃生总纲</h2>
+    <a class="start-card outline-card" href={byTitle(MAP_TITLE)}>
+      <span class="sc-num">先定位，再动作</span>
+      <span class="sc-title">投资体系地图：六个环节与你的入口</span>
+      <span class="sc-desc">
+        逃生是过程，不是语料。入口选错、先补理论后止血，是最贵的顺序倒错。它不教动作，只回答「先做什么、后做什么、怎么知道过没过关」。
+      </span>
+      <span class="sc-path">
+        <b>内容</b>：六环节总表（每环有可当场做出来的过关标准）· 三个入口的步骤路径（入口 A 六步、入口 B 与 C 各五步）· 一个「已被套」者的完整走查（假设案例）
+      </span>
+    </a>
   </section>
 
   <section class="section" id="start">
     <p class="section-label">START HERE</p>
     <h2 class="section-title">你现在是什么处境？</h2>
-    <p class="section-intro">同一个市场，四种人该做的事完全不同。选一条路径，按顺序读四条。</p>
+    <p class="section-intro">你现在在逃生路线的哪一段？顺序即优先级。</p>
     <div class="start-here">
       {
         PATHS.map((p) => (
@@ -120,11 +145,32 @@ const nDomains = domains.length;
                 p.map && (
                   <>
                     {' · '}
-                    <a href={byTitle(p.map)}>完整五步见{p.map.split('：')[0]}</a>
+                    <a href={byTitle(p.map)}>完整步骤见{p.map.split('：')[0]}</a>
                   </>
                 )
               }
             </span>
+            {
+              // handover P0-6「只读一句」桥：长文步骤（PATH 01 第 2 步 / PATH 03 第 1 步）
+              // 在路径卡上先给一句核心结论（数据在 lib/paths.mjs 的 bridge，条目页已有速览卡）。
+              Object.entries(p.bridge ?? {}).map(([idx, text]) => (
+                <span class="sc-bridge">
+                  <b>长文只读一句</b>：第 {idx} 步
+                  <a href={byTitle(p.steps[Number(idx) - 1])}>《{p.steps[Number(idx) - 1].split('：')[0]}》</a>
+                  ——{text}
+                </span>
+              ))
+            }
+            {
+              // 2026-10-15 审查项 1/3：每条路径卡一行「终点」——四路径每条有可达终点，
+              // 无「路径走完」死端（PATH 01-03 终点 = 季度重走定位表 → 地图；
+              // PATH 04 = 重建起点实链 → 先分清三种钱）。
+              p.end && (
+                <span class="sc-end">
+                  <b>终点</b>：<a href={byTitle(p.end.target)}>{p.end.label}</a>
+                </span>
+              )
+            }
           </div>
         ))
       }
@@ -147,6 +193,8 @@ const nDomains = domains.length;
             <span class="dc-num">{d.num}</span>
             <h3 class="dc-name">{d.name}</h3>
             <p class="dc-essence">{d.essence}</p>
+            <!-- 2026-10-15 审查项 6：编号是坐标不是顺序（各域页头部同句） -->
+            <p class="dc-essence">编号是地图坐标，不是学习顺序，顺序见路径与总纲</p>
             <p class="dc-meta">
               {d.items.length} 条 · 其中 A 级证据 {d.items.filter((e) => e.data.evidence === 'A').length} 条
             </p>
@@ -160,7 +208,7 @@ const nDomains = domains.length;
     <p class="section-label">COMPARE</p>
     <h2 class="section-title">对照表</h2>
     <p class="section-intro">
-      四张表代替四十页长文：股灾数字、大师业绩、认知偏差自查、理念对错。每一行都能点回条目，表里的数字与条目逐字一致。
+      五张表代替四十页长文：股灾数字、大师业绩、认知偏差自查、理念对错、冲动触发。每一行都能点回条目，表里的数字与条目逐字一致。
     </p>
     <div class="domain-map">
       {

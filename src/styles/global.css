@@ -816,6 +816,80 @@ article:has(.concl-bar) { --concl-h: 2.2rem; }
 /* 兜底：未进 H2_IDS 映射的 h2（当前无，防将来新增节无声产出的类） */
 .mod-generic { border-left: 2px solid var(--accent); padding-left: 1.1rem; }
 
+/* ============ 长条目页内 TOC（2026-10-17 P0，零 JS） ============
+   正文 CJK 字数 ≥ 2100 → quick-cards 后渲染 <details class="toc">（见 [...slug].astro）。
+   折叠语言照 dom-details（边框 + summary + 隐藏 marker + ＋/－）；
+   toc-d2 = h2 节（howto/plain/gain/perf/source/notes），toc-d3 = 八问复盘/四副眼镜
+   h3 + 四段 part-label（when/steps/output/pass），缩一级表层级。
+   锚点目标需越过 页头+结论条 双层 sticky，与 h2 的 scroll-margin-top 同口径。 */
+details.toc { max-width: var(--measure); margin: 1rem 0 0; border: 1px solid var(--rule); }
+details.toc > summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  padding: 0.6rem 0.9rem;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--fg-dim);
+}
+details.toc > summary::-webkit-details-marker { display: none; }
+details.toc > summary::after { content: "＋"; margin-left: auto; font-family: var(--mono); color: var(--fg-dim); }
+details.toc[open] > summary::after { content: "－"; }
+details.toc > summary:hover { color: var(--accent); }
+.toc-list { list-style: none; margin: 0.35rem 0 0.45rem; padding: 0 0.9rem; }
+.toc-list li { margin: 0.1rem 0; }
+.toc-list li.toc-d3 { padding-left: 1rem; }
+.toc-list a {
+  display: block;
+  padding: 0.16rem 0.35rem;
+  border-radius: 2px;
+  font-size: 0.82rem;
+  color: var(--fg-dim);
+  text-decoration: none;
+}
+.toc-list li.toc-d3 a { font-size: 0.78rem; }
+.toc-list a:hover { color: var(--accent); background: var(--bg-soft); }
+.entry-body h3[id], .entry-body p.howto-part[id] {
+  scroll-margin-top: calc(var(--header-h) + var(--concl-h, 0rem) + 3.2rem);
+}
+
+/* ============ 逐条折叠 q-item（八问复盘/四副眼镜，2026-10-17 P1，零 JS） ============
+   headings.mjs 把「li 首个 inline 子节点是 strong ≤32 字」的 li 转成
+   <details class="q-item">（首条默认 open）；折叠语言照 qc-more（▸/▾ 伪元素、
+   hover 色、marker 隐藏）。summary 显示 strong 文字逐字（strong 标签被插件移除，
+   加粗用 weight 补回）。被转列表均为 tight 列表（loose 列表 li 内容被 <p> 包裹、
+   无 inline 子节点，插件降级原样保留），故 summary 后是纯 inline 流——
+   用 details padding + summary 负 margin 做全宽分隔与内容缩进。 */
+.q-item { margin: 0.55rem 0; padding: 0 0.85rem; border: 1px solid var(--rule); background: var(--bg-card); }
+.q-item > summary {
+  display: block;
+  margin: 0 -0.85rem;
+  padding: 0.55rem 0.85rem;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--fg);
+}
+.q-item > summary::-webkit-details-marker { display: none; }
+.q-item > summary::before { content: "▸ "; color: var(--accent); }
+.q-item[open] > summary::before { content: "▾ "; }
+.q-item > summary:hover { color: var(--accent); }
+/* 深潜 chip（2026-10-17 P1）：正文 CJK 字数 ceil(/350) 分钟 ≥10 → meta 行「档案 · 约 N 分钟」。
+   徽章语言照 dir-ev（小框徽章、2px 圆角、0.72 下限）；色取档案层 fg-dim（与 layer-档案 同）。 */
+.depth-chip {
+  display: inline-block;
+  font-size: 0.72rem;
+  color: var(--fg-dim);
+  border: 1px solid var(--rule-strong);
+  border-radius: 2px;
+  padding: 0 0.3rem;
+  vertical-align: 0.08em;
+  white-space: nowrap;
+}
+
 /* ============ 双链（wikilinks） ============ */
 /* 正文里的 [[…]] 渲染为 <a class="wl">：细下划线 + hover 出强调色，
    与普通文字可辨但不抢正文（杂志风克制）。亮/暗均走 token，自动跟随。 */

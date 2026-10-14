@@ -2,7 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import { computeBacklinksFrom, makeEntryIndex, normalizeCollection } from '../lib/entries.mjs';
-import { extractWhenSentence } from '../lib/headings.mjs';
+import { extractToc, extractWhenSentence, countCjk, TOC_MIN_CJK } from '../lib/headings.mjs';
 import { normalizeKey } from '../lib/slug.mjs';
 // P2-C3（U-4）：PATHS 共享源（与 index.astro 同口径，唯一事实源约束见 lib/paths.mjs 头注释）
 import { pathHitsFor } from '../lib/paths.mjs';
@@ -22,6 +22,15 @@ const B = import.meta.env.BASE_URL;
 const { entry } = Astro.props;
 const { Content } = await render(entry);
 const d = entry.data;
+
+// ── 长条目阅读体验（2026-10-17 P0+P1）───────────────────────────
+// 正文 CJK 字数（entry.body 已不含 frontmatter；countCjk 再剥代码块）驱动两个阈值：
+// · TOC_MIN_CJK（2100）：达到 → quick-cards 后渲染页内 TOC（details 默认关，
+//   数据 extractToc，id 与 headings.mjs 插件同一映射；取值依据见该文件注释）；
+// · 深潜 chip：N = ceil(CJK/350)，N≥10（≈3151 字）→ meta 行「{layer} · 约 N 分钟」（2026-10-17 修：用真实 layer，原固定「档案」会误标理念/执行层长条目）。
+const cjk = countCjk(entry.body);
+const toc = cjk >= TOC_MIN_CJK ? extractToc(entry.body) : [];
+const deepMin = Math.ceil(cjk / 350);
 
 const backlinks = backlinksBySlug.get(entry.id) ?? [];
 
@@ -177,6 +186,7 @@ const domainNext =
         {d.checked && <>来源核对于 {d.checked.toISOString().slice(0, 10)}</>}
         {d.disputed && <> · <b>本站标注：结论存在争议</b></>}
         {layer && <> · <span class={`layer-tag layer-${layer}`}>{layer}</span></>}
+        {deepMin >= 10 && <> · <span class="depth-chip">{layer} · 约 {deepMin} 分钟</span></>}
       </p>
       {d.aliases?.length > 0 && <p class="entry-aliases">又称：{d.aliases.join(' · ')}</p>}
     </header>
@@ -225,6 +235,25 @@ const domainNext =
         ))
       }
     </div>
+
+    <!-- 长条目页内 TOC（2026-10-17 P0，零 JS）：正文 CJK 字数 ≥ TOC_MIN_CJK（2100）才渲染，
+         短条目（48/124）不渲染、零回退。数据 extractToc（文档实际顺序：h2 五节/业绩验证
+         + 八问复盘/四副眼镜 h3 + 四段 part-label，id 与 headings.mjs 插件同一映射）；
+         details 默认关，展开语言见 global.css .toc（照 dom-details）。 -->
+    {toc.length > 0 && (
+      <details class="toc">
+        <summary>本条内容</summary>
+        <ol class="toc-list">
+          {
+            toc.map((t) => (
+              <li class={`toc-d${t.depth}`}>
+                <a href={`#${t.id}`}>{t.text}</a>
+              </li>
+            ))
+          }
+        </ol>
+      </details>
+    )}
 
     <!-- P2-C3（U-4）：路径进度 chip 行——路径在离开首页的一刻就断（02-P-05），
          条目页补上「PATH 0X · n/m → 下一步」。普通流（非 sticky），位于速览卡与

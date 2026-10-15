@@ -85,7 +85,21 @@
 //   基线实测（2026-10-16）：18 条命中，该 18 条的「说人话」已同批改写为口语近似措辞
 //   （精确数字仍在「怎么做 / 收益」节），改写后零误报。
 //
-// 规则编号：本文件按 1–23 连续编号，每条对应「条目格式」页（src/content/pages/about.md）
+// v8 扩充（2026-10-18，崩盘可视化批 B —— 峰谷数字条 crash 字段）：
+//  24. crash 声明时五个数字字段必须逐字回源 keyNumber（error）：
+//      front matter 可选 crash 字段 {peak:{v,d}, drop, bottom:{v,d}, recover}（全字符串，
+//      渲染为条目页 quick-cards 后的 .crash-strip 三列 hero）是「页首大数字」的第二处
+//      落点（第一处是 keyFigure）。与 keyFigure 同风险：声明的大数字若与来源句漂移，
+//      读者看到的峰谷对就不是条目里核过的那组数。故声明时 peak.v/peak.d/drop/bottom.v/
+//      bottom.d 每个必须是 keyNumber 的逐字子串（复用 keyFigure 的逐字子串断言机制，
+//      含全角 − 号——「−89.19%」与半角 "-89.19%" 不同，子串匹配天然区分）。
+//      recover 是长句（收益节收复/未收复句的浓缩，优先逐字片段）不机检——与
+//      「这个数怎么用」收尾句同待遇（规则 22 只查在场、不查语义）。
+//      判定抽成纯函数 crashKeyNumberViolations，--canary 用反例 + 合规串双向自证。
+//      生效面：当前仅 15 条灾难档案声明（逐条清单见 2026-10-18 交付日志）；
+//      未声明（undefined）不检查——与 keyFigure 同款「不声明不机检」。
+//
+// 规则编号：本文件按 1–24 连续编号，每条对应「条目格式」页（src/content/pages/about.md）
 // 「条目格式」节的一行；改这里必须同步改那里（E1「体例合同对齐」，两者不一致时以本文件为准）。
 //
 // 用法：node scripts/check-content.mjs [--canary] [--only <文件名特征串>]
@@ -214,6 +228,39 @@ const missingGainTailCue = (g) => isMagnitudeGain(g) && !g.includes(GAIN_TAIL_CU
 //     判定抽成纯函数，供 --canary 自证：注入的反例必须被它判红，否则说明是空断言。
 const missingCommonError = (howto) => !howto.includes('**常见错**');
 
+// 24. v8（崩盘可视化批 B）：crash 数字回源 keyNumber（纯函数，--canary 自证用）。
+//     crash 声明时 peak.v/peak.d/drop/bottom.v/bottom.d 每个必须是 keyNumber 的
+//     逐字子串（与 keyFigure 规则同款机制，含全角 − 号）；空串/缺 keyNumber 同判红。
+//     recover 不在此列（长句，收益节收复/未收复句的浓缩，不机检）。
+//     返回违规信息串数组（空 = 合规）。未声明 crash（undefined/null）返回 []。
+const CRASH_FIELDS = [
+  ['peak.v', (c) => c.peak?.v],
+  ['peak.d', (c) => c.peak?.d],
+  ['drop', (c) => c.drop],
+  ['bottom.v', (c) => c.bottom?.v],
+  ['bottom.d', (c) => c.bottom?.d],
+];
+const crashKeyNumberViolations = (crash, keyNumber) => {
+  if (crash === undefined || crash === null) return [];
+  const out = [];
+  const kn = String(keyNumber ?? '');
+  for (const [name, get] of CRASH_FIELDS) {
+    const v = get(crash);
+    if (v === undefined || v === null || String(v).trim() === '') {
+      out.push(`crash.${name} 为空（crash 声明时五个数字字段必填；不声明就不写 crash 字段）`);
+      continue;
+    }
+    if (!kn) {
+      out.push(`crash.${name}「${v}」声明了但缺 keyNumber（crash 数字必须是 keyNumber 的逐字子串）`);
+      continue;
+    }
+    if (!kn.includes(String(v))) {
+      out.push(`crash.${name}「${v}」不是 keyNumber 的逐字子串（防漂移：必须是 keyNumber 原文中逐字出现的一段，含全角 − 号；与 keyFigure 同款规则 24）`);
+    }
+  }
+  return out;
+};
+
 // v7（D6）：规则 4「说人话禁数字」的中文数字支——精确中文数字三类（见文件头 v7 注释）：
 // ① 百分之X / 千分之X / 万分之X（2026-10-16 终验 P2-1 后三者同支）  ② 中文小数 X点Y（前导位含十，如「十点五」）
 //  ③ 百/千/万/亿级数量（需前导数字；「沪深三百」是指数名不是数量，排除）。
@@ -297,6 +344,9 @@ for (const e of entries) {
       fail(f, `keyFigure「${kf}」不是 keyNumber 的逐字子串（防漂移：必须是 keyNumber 原文中逐字出现的一段）`);
     }
   }
+  // 24. v8：crash 数字回源 keyNumber（声明时五个数字字段逐字子串断言，见文件头 v8 注释）。
+  //      recover 不机检（长句）。未声明 crash 不检查——与 keyFigure 同款「不声明不机检」。
+  for (const msg of crashKeyNumberViolations(d.crash, d.keyNumber)) fail(f, msg);
 
   // ---- 正文小节 ----
   const sections = splitSections(e.body);
@@ -610,6 +660,22 @@ if (CANARY) {
   const d6GoodProbe = '跌掉七成、亏了一半，只有一点点痛——沪深三百也扛不住，一九九四年那年，十点钟收盘前想的。';
   if (plainNumberHits(d6GoodProbe).length) {
     fail('__canary__', `规则 4 判定函数误伤：合规串被判红（${plainNumberHits(d6GoodProbe).join('、')}）`);
+  }
+  // v8 自证：规则 24（crash ⊂ keyNumber）反例 + 合规串双向自证（同规则 22/23/24 机制）。
+  // 反例：五个数字字段全部不是 keyNumber 子串 → 必须 5 项判红（一个都不能漏）。
+  const r24KeyNumber = '−89.19%(道指,1929-09-03 收盘 381.17 → 1932-07-08 收盘 41.22);回到前高 1954-11-23(约 25.2 年)';
+  const r24BadCrash = { peak: { v: '99999.99', d: '1999-01-01' }, drop: '−99.9%', bottom: { v: '1.01', d: '1999-02-02' } };
+  if (crashKeyNumberViolations(r24BadCrash, r24KeyNumber).length !== 5) {
+    fail('__canary__', '规则 24（crash ⊂ keyNumber）判定函数失效：反例未被逐项判红（应 5 项）——断言是空的');
+  }
+  // 空字段反例：crash.peak.v 为空串 → 同样判红（防「写个空 crash 绕过断言」）。
+  if (crashKeyNumberViolations({ peak: { v: '', d: '1929-09-03' }, drop: '−89.19%', bottom: { v: '41.22', d: '1932-07-08' } }, r24KeyNumber).length === 0) {
+    fail('__canary__', '规则 24 判定函数失效：空串反例未被判红——断言是空的');
+  }
+  // 反向自证：合规串（含全角 − 号与逗号点位）不得被判红。
+  const r24GoodCrash = { peak: { v: '381.17', d: '1929-09-03' }, drop: '−89.19%', bottom: { v: '41.22', d: '1932-07-08' }, recover: '回到前高 1954-11-23(约 25.2 年)' };
+  if (crashKeyNumberViolations(r24GoodCrash, r24KeyNumber).length !== 0) {
+    fail('__canary__', '规则 24 判定函数误伤：合规串被判红');
   }
 }
 

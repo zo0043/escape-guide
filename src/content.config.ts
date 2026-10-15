@@ -67,6 +67,23 @@ const escape = defineCollection({
     keyFigure: z.string().optional(),
     /** 最大风险：用错这条会怎么死（一句话） */
     maxRisk: z.string().optional(),
+    /**
+     * 可选：崩盘峰谷数字条（仅灾难档案适用；渲染为 quick-cards 后的 .crash-strip 三列 hero：
+     * 峰值 v@d | 最大跌幅 drop | 谷底 v@d，底部一行「收复: recover」）。
+     * 全字符串；声明了就必须五个数字字段齐全，且每个都是 keyNumber 的逐字子串
+     * （闸门规则 24 机检，与 keyFigure 同款防漂移断言，含全角 − 号）；
+     * recover 是收益节收复/未收复句的浓缩，不机检。数字必须从收益节首句/keyNumber
+     * 逐字抄（不改位数/口径），不诚实适配的条目不写（宁缺毋滥）。
+     * 缺省（不写 crash）→ 页面不留任何痕迹。
+     */
+    crash: z
+      .object({
+        peak: z.object({ v: z.string(), d: z.string() }),
+        drop: z.string(),
+        bottom: z.object({ v: z.string(), d: z.string() }),
+        recover: z.string().optional(),
+      })
+      .optional(),
     tags: z.array(z.string()).default([]),
   }),
 });

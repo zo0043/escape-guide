@@ -44,6 +44,15 @@
 //    node_modules/.astro/data-store.json——改本插件后，未改动的 .md 条目仍会命中
 //    旧缓存、渲染出旧版 HTML（.astro/dist 都删了也照样中招，只有内容 hash 变的条目
 //    会重渲）。验证插件改动必须 `rm -rf .astro dist node_modules/.astro` 后全量重建。
+//
+// 2026-10-18 崩盘可视化批（A 时间线提层，零 JS、原始 .md 一字不动）：
+//   10. 崩盘时间线提层：八问复盘 q-item 里 summary 恰为「崩塌时间线/时间线」且内容
+//      过识别断言（含 → 箭头 + 日期形态）→ 内容原地替换为固定指针句
+//      「时间线已移至页首。」（统一文案，class=tl-pointer）；页首 .timeline 由
+//      纯函数 extractCrashTimeline 供数据（extractToc 同款数据通道，与插件同一组
+//      常量与断言，两者命中集同形）。断言不中（summary 带尾注 / 无 → / 无日期）
+//      → 整块不转换不移动、原样保留（诚实降级，绝不丢文字）。
+//      原始 .md 一字不动：本批全部视觉去重都发生在这棵 hast 树上，源文件不感知。
 import { visit } from 'unist-util-visit';
 import { splitSections } from './entries.mjs';
 
@@ -235,6 +244,25 @@ export default function entryHeadings() {
     //     任一条件不满足的 li 原样保留（降级安全）。详见文件头 9。
     foldAfterH3(tree);
 
+    // 2c. 崩盘时间线提层（2026-10-18，渲染层 move，原始 .md 一字不动）：
+    //     q-item 的 summary 恰为「崩塌时间线/时间线」且内容过识别断言
+    //     （含 → 且含日期形态）→ 内容原地替换为固定指针句 TL_POINTER_TEXT；
+    //     同形纯函数 extractCrashTimeline 在模板侧渲染页首 .timeline（数据通道，
+    //     extractToc 同款）。断言不中 → 整块原样保留（诚实降级）。详见文件头 10。
+    visit(tree, 'element', (node) => {
+      if (node.tagName !== 'details' || !(Array.isArray(node.properties?.class) && node.properties.class.includes('q-item'))) return;
+      const summary = (node.children ?? []).find((c) => c.type === 'element' && c.tagName === 'summary');
+      if (!summary) return;
+      if (!TL_LABELS.has(textOf(summary).trim())) return;
+      const si = node.children.indexOf(summary);
+      const t = node.children.slice(si + 1).map(textOf).join('');
+      if (!isTimelineText(t)) return; // 降级：原样保留
+      node.children = [
+        summary,
+        { type: 'element', tagName: 'p', properties: { class: ['tl-pointer'] }, children: [{ type: 'text', value: TL_POINTER_TEXT }] },
+      ];
+    });
+
     // 3. 表格卡片化（≥5 列）：挂 table-cards 类 + 每格 data-label。
     //    列名取自 thead 第一行；2–4 列事实表保持现状（E5：折行可接受）。
     visit(tree, 'element', (node) => {
@@ -361,4 +389,110 @@ export function extractToc(body) {
     }
   }
   return out;
+}
+
+// ── 崩盘时间线提层（2026-10-18，渲染层 move，零 JS）───────────────────────
+// extractCrashTimeline(body)：extractToc 同款的「纯函数读 body」数据通道。
+// 定位八问复盘（clean 行，与插件 2a 的「p 仅含单个 strong」同形）内、summary 恰为
+// 「崩塌时间线/时间线」的列表项，取其内容（→ 箭头链段落），断言过后解析为节点
+// {date?, text}[] 供 [...slug].astro 渲染页首 .timeline；rehype 插件 2c 用同一组
+// 常量/断言把原 q-item 内容替换为固定指针句。两侧命中集同形（实测 124/124 一致，
+// 16 条命中、8 条不命中全部为诚实降级）。
+//
+// 识别断言（任一不满足 → null，整块不转换不移动）：
+//   ① 列表项 strong 文字恰为「崩塌时间线」或「时间线」（带尾注如「(两类时间线并列)」不命中）；
+//   ② 内容含 → 且含日期形态。日期形态在任务书两例（YYYY-MM-DD / YYYY 年）之外，
+//      另认 YYYY-MM / YYYY年M月D日 / MM-DD / M月D日——MM-DD 与 M月D日 过月 1–12、
+//      日 1–31 校验，排掉利率区间「0–0.25%」这类伪日期（实测 1987 全句是 10 月 MM-DD
+//      节点、无四位年份，必须认 MM-DD 否则该条诚实降级，16 条灾难档案只剩 15 条受益）。
+const TL_LABELS = new Set(['崩塌时间线', '时间线']);
+export const TL_POINTER_TEXT = '时间线已移至页首。';
+const TL_DATE_ALT =
+  '\\d{4}\\s*[-/年.]\\s*\\d{1,2}(?:\\s*[-/月]\\s*\\d{1,2}(?:\\s+日)?|\\s*月(?!度))?' + // YYYY-MM-DD / YYYY-MM / YYYY年M月D日 / YYYY年M月(「月度」非日期后缀,负前瞻排除)
+  '|\\d{4}\\s*年' +                                                   // YYYY 年
+  '|\\d{1,2}\\s*[-–—]\\s*\\d{1,2}(?:\\s+日)?' +                          // MM-DD（1987：10-16）
+  '|\\d{1,2}\\s*月\\s*\\d{1,2}\\s*日';                                 // M月D日（1987：10 月 14 日）
+
+// 单个日期串合法性（月 1–12 / 日 1–31）——MM-DD 支的「0–0.25%」伪日期由此排掉。
+function tlDateValid(s) {
+  let m, d;
+  const ymd = s.match(/^(\d{4})\s*[-/年.]\s*(\d{1,2})(?:\s*[-/月]\s*(\d{1,2})(?:\s+日)?|\s*月(?!度))?$/);
+  if (ymd) {
+    m = +ymd[2]; d = ymd[3] ? +ymd[3] : null;
+    return m >= 1 && m <= 12 && (d === null || (d >= 1 && d <= 31));
+  }
+  if (/^\d{4}\s*年$/.test(s)) return true;
+  const mmdd = s.match(/^(\d{1,2})\s*[-–—]\s*(\d{1,2})(?:\s+日)?$/);
+  if (mmdd) { m = +mmdd[1]; d = +mmdd[2]; return m >= 1 && m <= 12 && d >= 1 && d <= 31; }
+  const cnd = s.match(/^(\d{1,2})\s*月\s*(\d{1,2})\s*日$/);
+  if (cnd) { m = +cnd[1]; d = +cnd[2]; return m >= 1 && m <= 12 && d >= 1 && d <= 31; }
+  return false;
+}
+
+// 取文本里第一个合法日期串 {text, index}；没有返回 null（left-to-right，与插件断言同用）。
+function firstValidDate(text) {
+  const re = new RegExp(TL_DATE_ALT, 'g');
+  for (const m of text.matchAll(re)) {
+    if (tlDateValid(m[0])) return { text: m[0], index: m.index };
+  }
+  return null;
+}
+
+// 识别断言：含 → 箭头 + 含日期形态（两者都过才算时间线，防因果链误命中）。
+export function isTimelineText(t) {
+  return String(t ?? '').includes('→') && firstValidDate(String(t)) !== null;
+}
+
+export function extractCrashTimeline(body) {
+  const lines = String(body ?? '').split(/\r?\n/);
+  // ① clean「八问复盘」行（与插件 2a 同形；1637 的带尾注不命中 → 本条降级）
+  let qi = -1;
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].trim().match(/^\*\*(.+?)\*\*$/);
+    if (m && m[1].trim() === '八问复盘') { qi = i; break; }
+  }
+  if (qi < 0) return null;
+  // ② 块终点：下一个 clean 粗体行（四副眼镜等）或 h1–h6
+  let end = lines.length;
+  for (let i = qi + 1; i < lines.length; i++) {
+    const t = lines[i].trim();
+    if (/^\*\*[^*\n]+\*\*$/.test(t) || /^#{1,6}\s/.test(lines[i])) { end = i; break; }
+  }
+  // ③ 时间线项：编号列表项且 strong 恰为 崩塌时间线/时间线（2018 的「(两类时间线并列)」带尾注不命中）
+  const itemRe = /^\s*\d+\.\s+\*\*(崩塌时间线|时间线)\*\*\s*[。.:：]?/;
+  for (let i = qi + 1; i < end; i++) {
+    const m = lines[i].match(itemRe);
+    if (!m) continue;
+    // ④ 内容：同行 rest + 后续行（到空行/下一编号项/块终点为止）；
+    //    实测 16 条命中全是单行，多行支是安全网（直接拼接，CJK 零 token 丢失）
+    let content = lines[i].slice(m[0].length);
+    for (let j = i + 1; j < end; j++) {
+      const t = lines[j].trim();
+      if (t === '' || /^\d+\.\s/.test(t)) break;
+      content += t;
+    }
+    content = content.trim();
+    // ⑤ 识别断言（与插件 2c 同一函数）
+    if (!isTimelineText(content)) return null;
+    // ⑥ 节点解析：按 → 切段；每段第一个合法日期提为前缀（原日期从段内移到前缀，
+    //    不删不改，数字 token 前后计数一致）；无日期的段（因果节点/尾部重点句）保留全文。
+    const nodes = content
+      .split('→')
+      .map((seg) => {
+        const s = seg.trim();
+        const d = firstValidDate(s);
+        if (!d) return { date: null, text: s };
+        return { date: d.text, text: (s.slice(0, d.index) + s.slice(d.index + d.text.length)).trim() };
+      })
+      .filter((n) => n.text.length > 0 || n.date);
+    return { label: m[1], nodes };
+  }
+  return null;
+}
+
+// 时间线段内联 markdown 轻渲染：只处理 **加粗**（实测 16 条 Q3 内容无链接/行内代码/
+// 双链）；先转义 HTML 再换 ** 配对为 <strong>（防原始内容里的 < > & 与 XSS）。
+export function inlineMdLite(s) {
+  const esc = String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return esc.replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
 }

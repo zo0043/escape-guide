@@ -2,7 +2,7 @@
 import { getCollection, render } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import { computeBacklinksFrom, makeEntryIndex, normalizeCollection } from '../lib/entries.mjs';
-import { extractToc, extractWhenSentence, countCjk, TOC_MIN_CJK } from '../lib/headings.mjs';
+import { extractToc, extractWhenSentence, countCjk, TOC_MIN_CJK, extractCrashTimeline, inlineMdLite } from '../lib/headings.mjs';
 import { normalizeKey } from '../lib/slug.mjs';
 // P2-C3（U-4）：PATHS 共享源（与 index.astro 同口径，唯一事实源约束见 lib/paths.mjs 头注释）
 import { pathHitsFor } from '../lib/paths.mjs';
@@ -31,8 +31,27 @@ const d = entry.data;
 const cjk = countCjk(entry.body);
 const toc = cjk >= TOC_MIN_CJK ? extractToc(entry.body) : [];
 const deepMin = Math.ceil(cjk / 350);
+// ── 崩盘可视化批（2026-10-18，零 JS）─────────────────────────
+// · 峰谷数字条（B）：front matter 可选 crash 字段直接消费（d.crash）；五个数字由
+//   闸门规则 24 强制为 keyNumber 逐字子串（防漂移），recover 是收益节收复句浓缩。
+// · 时间线提层（A）：extractCrashTimeline 与 headings.mjs 插件 2c 同形同断言——
+//   插件把八问复盘 q-item 的原时间线原地换成指针句，本处在页首渲染常驻 .timeline；
+//   提取不中返回 null，模板不留任何痕迹（诚实降级）。
+const crashTl = extractCrashTimeline(entry.body);
 
 const backlinks = backlinksBySlug.get(entry.id) ?? [];
+
+// ── 崩盘可视化批（2026-10-18，零 JS；下方 quick-cards 后两个条件块）───────────────────
+// 峰谷数字条（B）：d.crash 是 front matter 可选 crash 字段——三列 hero（峰值 v@d |
+//   最大跌幅 drop 大字 | 谷底 v@d）+ 底部一行「收复: recover」。五个数字由闸门规则 24
+//   强制为 keyNumber 逐字子串（含全角 −，防页首大数字与来源句漂移）；recover 是收益节
+//   收复/未收复句的浓缩（不机检）。无 crash 字段不渲染、不留痕迹。
+// 时间线提层（A）：crashTl = extractCrashTimeline(entry.body)，与 headings.mjs 插件 2c
+//   同形同断言——插件把八问复盘 q-item 里「崩塌时间线/时间线」的原时间线原地换成指针句，
+//   这里在页首渲染常驻 .timeline。节点 = 按 → 切段，每段首个日期提为 <b class="t-date">
+//   等宽前缀（原日期不删不改，数字 token 前后计数一致）；段内 **加粗** 由 inlineMdLite
+//   转 <strong>（先转义 HTML）。提取不中（summary 带尾注 / 无 → / 无日期）返回 null，
+//   不渲染、不留痕迹（注释只在本脚本区，不进 HTML——未命中页面与改版前逐字节一致）。
 
 // 五节名是闸门强制常量，id 由 rehype 插件（headings.mjs）按同一映射挂上。
 // 「业绩验证」是大师条目独有的第六节——含该节才渲染 chip（E10），id 同映射。
@@ -235,6 +254,42 @@ const domainNext =
         ))
       }
     </div>
+
+    {d.crash && (
+      <div class="crash-strip" aria-label="崩盘数字条">
+        <div class="cs-col">
+          <span class="cs-label">峰值</span>
+          <span class="cs-num">{d.crash.peak.v}</span>
+          <span class="cs-date">{d.crash.peak.d}</span>
+        </div>
+        <div class="cs-col">
+          <span class="cs-label">最大跌幅</span>
+          <span class="cs-num cs-drop">{d.crash.drop}</span>
+        </div>
+        <div class="cs-col">
+          <span class="cs-label">谷底</span>
+          <span class="cs-num">{d.crash.bottom.v}</span>
+          <span class="cs-date">{d.crash.bottom.d}</span>
+        </div>
+        {d.crash.recover && <p class="cs-recover">收复：{d.crash.recover}</p>}
+      </div>
+    )}
+
+    {crashTl && (
+      <section class="timeline" aria-label={`${crashTl.label}（页首提层）`}>
+        <h2 class="tl-title">{crashTl.label}</h2>
+        <ol class="tl-list">
+          {
+            crashTl.nodes.map((n) => (
+              <li>
+                {n.date && <b class="t-date">{n.date}</b>}
+                <span class="t-text" set:html={inlineMdLite(n.text)}></span>
+              </li>
+            ))
+          }
+        </ol>
+      </section>
+    )}
 
     <!-- 长条目页内 TOC（2026-10-17 P0，零 JS）：正文 CJK 字数 ≥ TOC_MIN_CJK（2100）才渲染，
          短条目（48/124）不渲染、零回退。数据 extractToc（文档实际顺序：h2 五节/业绩验证

@@ -890,6 +890,68 @@ details.toc > summary:hover { color: var(--accent); }
   white-space: nowrap;
 }
 
+/* ============ 崩盘峰谷数字条 crash-strip（2026-10-18 崩盘可视化批 B，零 JS） ============
+   front matter 可选 crash 字段（仅灾难档案适用；闸门规则 24 机检五个数字 ⊂ keyNumber）。
+   三列：峰值 v@d | 最大跌幅 drop（大字） | 谷底 v@d，底部一行「收复: …」。
+   单色纪律：分隔用虚线（毛边感）、强调用字号不用颜色（drop 列 1.55rem→1.95rem）；
+   大数字与 keyNumber 同款等宽（--mono + letter-spacing -0.01em）。无 crash 字段 →
+   模板不渲染，零痕迹。窄屏（≤639px）三列堆叠单列（同 quick-cards 的断点）。 */
+.crash-strip {
+  max-width: var(--measure);
+  margin: 1.1rem 0 0;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  border: 1px dashed var(--rule-strong);
+  background: var(--bg-card);
+}
+.cs-col { display: flex; flex-direction: column; gap: 0.18rem; padding: 0.7rem 1.05rem 0.75rem; }
+.cs-col + .cs-col { border-left: 1px dashed var(--rule-strong); }
+.cs-label { font-size: 0.72rem; letter-spacing: 0.06em; color: var(--fg-dim); }
+.cs-num { font-family: var(--mono); font-size: 1.55rem; font-weight: 600; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+/* 跌幅列：字号强调（不用颜色——品牌单色纪律；--fg 即最深前景，无新色） */
+.cs-num.cs-drop { font-size: 1.95rem; color: var(--fg); }
+.cs-date { font-family: var(--mono); font-size: 0.74rem; color: var(--fg-dim); overflow-wrap: anywhere; }
+.cs-recover {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0.5rem 1.05rem 0.6rem;
+  border-top: 1px dashed var(--rule-strong);
+  font-size: 0.76rem;
+  line-height: 1.6;
+  color: var(--fg-dim);
+}
+@media (max-width: 639px) {
+  .crash-strip { grid-template-columns: 1fr; }
+  .cs-col + .cs-col { border-left: none; border-top: 1px dashed var(--rule-strong); }
+}
+
+/* ============ 崩盘时间线提层 .timeline（2026-10-18 崩盘可视化批 A，渲染层 move） ============
+   八问复盘 q-item 里「崩塌时间线/时间线」的 → 箭头链被提到页首常驻（原始 .md 一字不动，
+   headings.mjs 插件 2c 把原位置换成 .tl-pointer 指针句）。左竖线 + 节点圆点（li::before）；
+   日期前缀 <b class="t-date"> 等宽 + fg 强调（单色纪律，不用新色）；窄屏不溢出
+   （日期 nowrap、段文可断，与 quick-card/.cb-num 同款 overflow-wrap）。 */
+.timeline { max-width: var(--measure); margin: 1.1rem 0 0; }
+.tl-title { margin: 0 0 0.45rem; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.04em; }
+.tl-list { list-style: none; margin: 0; padding: 0 0 0 1.3rem; border-left: 2px solid var(--rule-strong); }
+.tl-list li { position: relative; margin: 0.32rem 0; font-size: 0.86rem; line-height: 1.7; overflow-wrap: anywhere; }
+.tl-list li::before {
+  content: "";
+  position: absolute;
+  left: calc(-1.3rem - 3.5px); /* 圆点中心对准左竖线（1.3rem padding + 2px 线宽） */
+  top: 0.55em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 2px solid var(--fg);
+}
+.t-date { font-family: var(--mono); font-weight: 600; color: var(--fg); margin-right: 0.45rem; white-space: nowrap; }
+.t-text { color: var(--fg); }
+.t-text strong { font-weight: 600; }
+/* q-item 原地指针句（提取成功时原时间线被替换）：小字灰，不抢正文。 */
+.tl-pointer { margin: 0.4rem 0 0.15rem; font-size: 0.8rem; color: var(--fg-dim); }
+
 /* ============ 双链（wikilinks） ============ */
 /* 正文里的 [[…]] 渲染为 <a class="wl">：细下划线 + hover 出强调色，
    与普通文字可辨但不抢正文（杂志风克制）。亮/暗均走 token，自动跟随。 */

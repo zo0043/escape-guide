@@ -1,27 +1,46 @@
 /* ============================================================
-   A股散户逃生指南 · 杂志风设计系统（2026-10-11 重做）
-   取向：留白、大标题、发丝线、克制的强调色；密度靠结构而不是靠小字堆砌。
-   约束：零 JS、零外链字体（系统字体族）；暗色跟随系统。
+   A股散户逃生指南 · Kami 风格设计系统（2026-10-15 K1 基础设施批）
+   取向：温暖纸面（parchment #f5f4ed，永不用纯白画布）、单一墨蓝强调（#1B365D，
+   不许第二色相）、暖调黄棕中性（所有中性 hex 红≥蓝）、全页单一衬线
+   TsangerJinKai02（构建期子集本地托管，权重锁 500 永不加粗，加粗语义改墨蓝色）。
+   行高：标题 1.15–1.25、正文 1.55、永不 1.6+。阴影只许 ring/whisper。
+   约束：零 JS、字体本地（public/fonts/）；暗色跟随系统（暖墨）；打印白底变体。
    ============================================================ */
 
+/* K1 · TsangerJinKai02 W05（仓耳今楷 02，字重 500）本地托管子集。
+   来源：github.com/tw93/Kami assets/fonts/TsangerJinKai02-W05.ttf（仓内跟踪），
+   构建期 pyftsubset 子集 → public/fonts/tscjk-500.woff2（scripts/subset-font.mjs），
+   覆盖闸门 scripts/check-font-coverage.mjs 挂 build 链。
+   源字体内部 OS/2 权重为 400——此处按 Kami 模板同口径声明 font-weight:500 锁单一权重；
+   全站禁用 faux bold（所有 font-weight 声明归一到 500）。 */
+@font-face {
+  font-family: "TsangerJinKai02";
+  src: url("/fonts/tscjk-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* K1 · 三套令牌（浅/暗/打印见 @media print）。单一墨蓝强调，无第二色相；
+   语义色 --ok/--warn/--risk 不再有独立色相，全部别名到 强调+暖中性
+   （A 级证据/执行层=强调；争议/工具层=暖中性；风险数字=强调）。 */
 :root {
-  --bg: #fbfaf6;
-  --bg-soft: #f3f0e9;
-  --bg-card: #ffffff;
-  --fg: #16171a;
-  --fg-dim: #6b6862;
-  --rule: #e4dfd2;
-  --rule-strong: #c9c1ae;
-  --accent: #9c3d10;
-  --accent-soft: #f8ece2;
-  --accent-bright: #c2410c;
-  /* 压在 accent 上的文字色：亮色主题用白（对 #9c3d10 = 6.8:1） */
+  --bg: #f5f4ed;         /* 画布：温暖纸面（永不用纯白） */
+  --bg-soft: #efece2;    /* 代码底/斑马纹/备注块暖底（比画布略深） */
+  --bg-card: #fbfaf6;    /* 卡面 */
+  --fg: #2b2620;         /* 正文墨 */
+  --fg-dim: #6b6459;     /* 次级 */
+  --rule: #d8d2c4;       /* 细线 */
+  --rule-strong: #b5ad9c; /* 强线 */
+  --accent: #1b365d;     /* 唯一强调：墨蓝（加粗语义/链接/徽章/进度） */
+  --accent-soft: #ebe9de; /* hover/active 暖中性底（不再做强调浅染） */
+  /* 压在 accent 上的文字色：亮色主题白字（对 #1b365d = 12.1:1） */
   --on-accent: #ffffff;
-  --ok: #2f6b4f;
-  --warn: #8a6a12;
-  --risk: #a12a1f;
-  --serif: "Songti SC", "Source Han Serif SC", "Noto Serif CJK SC", "Noto Serif SC",
-    SimSun, Georgia, "Times New Roman", serif;
+  --ok: var(--accent);   /* A 级证据 / 执行层 / 输出段 */
+  --warn: var(--fg);     /* 争议徽章 / 工具层 / 过关段 */
+  --risk: var(--accent); /* 最大风险数字 */
+  --serif: "TsangerJinKai02", "Songti SC", "Source Han Serif SC",
+    "Noto Serif CJK SC", "Noto Serif SC", SimSun, Georgia, "Times New Roman", serif;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
     "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
@@ -32,22 +51,22 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #14161a;
-    --bg-soft: #1b1e23;
-    --bg-card: #1a1d22;
-    --fg: #eae7e0;
-    --fg-dim: #a09c94;
-    --rule: #2c3037;
-    --rule-strong: #454b54;
-    --accent: #e0a03a;
-    --accent-soft: #2a2419;
-    --accent-bright: #f0b429;
-    /* 压在 accent 上的文字色：暗色主题 accent 是琥珀，白字仅 2.27:1，
-       改暗底字（对 #e0a03a = 7.99:1，过 AA） */
-    --on-accent: #14161a;
-    --ok: #7fb894;
-    --warn: #d8bb62;
-    --risk: #e08b80;
+    /* 暗色 = 暖墨（不是冷黑）；强调用墨蓝提亮 */
+    --bg: #211e19;
+    --bg-soft: #262219;
+    --bg-card: #2a2620;
+    --fg: #e9e3d4;
+    --fg-dim: #a89f8d;
+    --rule: #3a352b;
+    --rule-strong: #57503f;
+    --accent: #93aac8;
+    --accent-soft: #2c2820;
+    /* 压在 accent 上的文字色：暗色主题 accent 是亮墨蓝，白字仅 2.38:1，
+       改深底字（对 #93aac8 = 6.99:1，过 AA） */
+    --on-accent: #211e19;
+    --ok: var(--accent);
+    --warn: var(--fg);
+    --risk: var(--accent);
   }
 }
 
@@ -57,11 +76,19 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font-family: var(--sans);
+  font-family: var(--serif); /* K1：正文/内容走衬线（TsangerJinKai02 优先）；UI 元素各自 var(--sans) */
   font-size: 1rem;
-  line-height: 1.85;
+  font-weight: 500; /* K1：权重锁 500（单一字重，永不加粗） */
+  line-height: 1.55; /* K1：正文行高（旧 1.85；Kami 区间 1.4–1.55，永不 1.6+） */
   text-rendering: optimizeLegibility;
 }
+/* K1 · 标题行高：h1 1.15 / h2 1.2 / h3 1.25（紧，不超 1.3）；CJK 不加 letter-spacing */
+h1 { line-height: 1.15; letter-spacing: 0; }
+h2 { line-height: 1.2; letter-spacing: 0; }
+h3 { line-height: 1.25; letter-spacing: 0; }
+/* K1 · 加粗语义 → 墨蓝强调：strong/b 全局 weight 500 + accent（含表格/列表/卡片内）。
+   个别 UI 元素（如 .t-date 日期、.entry-aliases::before 标签）用更高特异性压回 fg。 */
+strong, b { font-weight: 500; color: var(--accent); }
 a { color: inherit; }
 a:hover { color: var(--accent); }
 .wrap { max-width: 70rem; margin: 0 auto; padding: 0 1.35rem; }
@@ -87,8 +114,7 @@ a:hover { color: var(--accent); }
 .site-title {
   font-family: var(--serif);
   font-size: 1.06rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
+  font-weight: 500; /* K1：权重锁 500（品牌字不加粗，强调靠色不靠重） */
   text-decoration: none;
   flex-shrink: 0; /* P0-4：站名保持完整，收缩预算全部给 nav 的横滑窗口 */
 }
@@ -101,6 +127,7 @@ a:hover { color: var(--accent); }
   margin-left: auto;
   display: flex;
   gap: 1.2rem;
+  font-family: var(--sans); /* K1：导航 UI 走系统 sans（不下载） */
   font-size: 0.86rem;
   min-width: 0;
   overflow-x: auto;
@@ -135,7 +162,8 @@ a:hover { color: var(--accent); }
   z-index: 29; /* 低于页头 30（不叠页头），高于 sticky chips 20（展开时盖住页内目录） */
   background: var(--bg-card);
   border-bottom: 1px solid var(--rule-strong);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 8%);
+  /* K1 阴影审计：旧 0 8px 24px 硬投影 → ring（细线）+ whisper（0 2px 6px，暖墨 6%） */
+  box-shadow: 0 0 0 1px var(--rule), 0 2px 6px rgb(43 38 32 / 6%);
   padding: 0.9rem 0 1.1rem;
 }
 .nav-drop-menu-in {
@@ -151,7 +179,6 @@ a:hover { color: var(--accent); }
 /* P2-C6（02-P-17）：中文标签去 mono（mono 只留数字/编号/Latin）+ 标签字号下限 0.72rem */
 .nav-drop-glabel {
   font-size: 0.72rem;
-  letter-spacing: 0.12em;
   color: var(--fg-dim);
   margin-right: 0.5rem;
 }
@@ -178,30 +205,36 @@ a:hover { color: var(--accent); }
   margin-top: 6rem;
   padding: 2rem 0 3rem;
   border-top: 1px solid var(--rule);
+  font-family: var(--sans); /* K1：页脚 UI 走 sans */
   font-size: 0.85rem;
   color: var(--fg-dim);
 }
 /* 页脚两行：导航行 + 免责小字（S6；措辞与 about.md:93 的免责声明一致） */
 .footer-line { margin: 0; }
+/* K2 ⑪：页脚链接色——默认墨（比页脚 dim 文字略深，链接可辨），hover 墨蓝 */
+.site-footer a { color: var(--fg); text-decoration: none; }
+.site-footer a:hover { color: var(--accent); }
 .footer-fine { margin: 0.6rem 0 0; font-size: 0.76rem; color: var(--fg-dim); opacity: 0.85; max-width: var(--measure); }
 /* 首页 stat 墙的 A 级可点（N2：数字墙 → A 级索引入口） */
 .stat-link { text-decoration: none; color: inherit; display: block; }
 .stat-link:hover .stat-num { color: var(--accent); }
 /* 别名索引页（U8） */
 .alias-group { margin-top: 1.8rem; }
-.alias-group-title { font-size: 0.95rem; color: var(--fg-dim); font-weight: 600; margin: 0 0 0.6rem; }
+.alias-group-title { font-family: var(--sans); font-size: 0.95rem; color: var(--fg-dim); font-weight: 500; margin: 0 0 0.6rem; }
 .alias-list { list-style: none; padding: 0; margin: 0; }
 .alias-item { padding: 0.55rem 0; border-bottom: 1px solid var(--rule); font-size: 0.9rem; }
 /* P1-10（02-P-12 修法③）：俗称是行的主信息——「又称」chip 前置（加粗/提色，不加字号：
    最长 22 字 CJK 别名在 375px 下必须不超页宽，white-space:normal 允许窄屏折两行），
    正式标题降为小字。旧 .alias-entry/.alias-kicker 规则随旧行结构删除（类集合比对：页面不再渲染）。 */
 .alias-chip-lead {
+  font-family: var(--sans);
   color: var(--fg);
-  font-weight: 600;
+  font-weight: 500;
   white-space: normal;
   text-align: center;
 }
 .alias-entry-dim {
+  font-family: var(--sans);
   margin-left: 0.6rem;
   font-size: 0.78rem;
   color: var(--fg-dim);
@@ -210,6 +243,7 @@ a:hover { color: var(--accent); }
 .alias-entry-dim:hover { color: var(--accent); text-decoration: underline; }
 .alias-chip {
   display: inline-block;
+  font-family: var(--sans);
   font-size: 0.76rem;
   color: var(--fg-dim);
   border: 1px solid var(--rule-strong);
@@ -232,9 +266,9 @@ a:hover { color: var(--accent); }
   margin: 1.15rem 0 0.3rem;
   font-family: var(--mono);
   font-size: 0.85rem;
-  font-weight: 700;
+  font-weight: 500;
   color: var(--fg-dim);
-  letter-spacing: 0.08em;
+  letter-spacing: 0.08em; /* Latin 字母组头（拼音跳格），CJK 才禁 spacing */
   border-bottom: 1px solid var(--rule);
   padding-bottom: 0.2rem;
   scroll-margin-top: calc(var(--header-h) + 0.5rem);
@@ -242,15 +276,15 @@ a:hover { color: var(--accent); }
 .alias-gcount { margin-left: 0.5rem; font-size: 0.72rem; font-weight: 400; }
 .a-list { list-style: none; padding: 0; margin: 0; }
 .a-item { padding: 0.7rem 0; border-bottom: 1px solid var(--rule); }
-.a-title { font-weight: 600; text-decoration: none; color: var(--fg); }
+.a-title { font-weight: 500; text-decoration: none; color: var(--fg); }
 .a-title:hover { color: var(--accent); }
-.a-num { display: block; margin-top: 0.25rem; font-size: 0.8rem; color: var(--fg-dim); line-height: 1.6; }
+.a-num { display: block; margin-top: 0.25rem; font-family: var(--sans); font-size: 0.8rem; color: var(--fg-dim); line-height: 1.5; }
 .a-num-empty { opacity: 0.85; }
 /* 404 多出口（N3） */
 .nf-exits { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; margin-top: 1.4rem; }
 /* P2-C7（02-P-15）：404 静态版「你是不是要找」——推荐入口行沿用 nav-drop 菜单的链接语言
    （.nav-drop-menu a：0.86rem/fg/小圆角/hover 提色），chip 行直接复用别名页 .alias-chip。 */
-.nf-suggest { margin-top: 2.2rem; padding-top: 1.4rem; border-top: 1px dashed var(--rule); text-align: center; }
+.nf-suggest { margin-top: 2.2rem; padding-top: 1.4rem; border-top: 1px dashed var(--rule); text-align: center; font-family: var(--sans); } /* K1：404 出口 UI 走 sans */
 .nf-suggest-label { margin: 0 0 0.8rem; font-size: 0.92rem; color: var(--fg-dim); }
 .nf-suggest-entries { display: flex; flex-wrap: wrap; gap: 0.3rem 0.5rem; justify-content: center; }
 .nf-suggest-entries a {
@@ -266,30 +300,30 @@ a:hover { color: var(--accent); }
 .nf-suggest-hint { margin: 0.9rem 0 0; font-size: 0.76rem; color: var(--fg-dim); }
 
 /* ============ 首屏 ============ */
-.hero { padding: 4.2rem 0 2.6rem; }
+/* K2 ⑩：hero 留白加大 */
+.hero { padding: 5.4rem 0 3.2rem; }
 /* P2-C6（02-P-17）：「A 股散户逃生指南」中文为主，去 mono（Latin 间距减半防稀） */
 .hero-kicker {
+  font-family: var(--sans); /* K1：眉标 UI 走 sans；中文不加 letter-spacing */
   font-size: 0.76rem;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
   color: var(--accent);
   margin: 0;
 }
 .hero-title {
   font-family: var(--serif);
-  font-size: clamp(2.2rem, 5.4vw, 3.4rem);
-  line-height: 1.18;
-  letter-spacing: -0.01em;
-  font-weight: 700;
+  font-size: clamp(2.3rem, 5.6vw, 3.6rem); /* K2 ⑩：标题衬线大（上限 3.4→3.6rem） */
+  line-height: 1.15; /* K1：h1 行高 1.15 */
+  font-weight: 500; /* K1：权重锁 500 */
   margin: 0.9rem 0 0;
 }
 .hero-lede {
   max-width: 33em;
   margin: 1.2rem 0 0;
   font-size: 1.04rem;
-  line-height: 1.95;
+  line-height: 1.55; /* K1：旧 1.95 → 1.55 */
   color: var(--fg-dim);
 }
-.hero-lede b { color: var(--fg); font-weight: 600; }
 .hero-cta { display: flex; flex-wrap: wrap; gap: 0.7rem; margin: 2rem 0 0; }
 .cta {
   display: inline-block;
@@ -297,8 +331,9 @@ a:hover { color: var(--accent); }
   border: 1px solid var(--rule-strong);
   background: var(--bg-card);
   border-radius: 2px;
+  font-family: var(--sans); /* K1：按钮 UI 走 sans */
   font-size: 0.94rem;
-  font-weight: 600;
+  font-weight: 500;
   text-decoration: none;
   transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
@@ -314,21 +349,23 @@ a:hover { color: var(--accent); }
   border-top: 1px solid var(--rule);
 }
 @media (min-width: 720px) { .stat-wall { grid-template-columns: repeat(4, 1fr); } }
+/* K2 ⑩：stat 行数字衬线大字墨蓝（mono→serif；数字墙与速览/crash-strip 同语言） */
 .stat-num {
   display: block;
-  font-family: var(--mono);
-  font-size: clamp(1.7rem, 3.4vw, 2.35rem);
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-family: var(--serif);
+  font-size: clamp(1.85rem, 3.6vw, 2.55rem);
+  font-weight: 500;
+  letter-spacing: -0.01em;
   line-height: 1.1;
+  color: var(--accent);
 }
-.stat-label { display: block; margin-top: 0.4rem; font-size: 0.8rem; color: var(--fg-dim); }
+.stat-label { display: block; margin-top: 0.4rem; font-family: var(--sans); font-size: 0.8rem; color: var(--fg-dim); }
 .trust-line {
   margin: 2rem 0 0;
   padding-left: 0.95rem;
   border-left: 2px solid var(--accent);
   font-size: 0.88rem;
-  line-height: 1.8;
+  line-height: 1.55; /* K1：旧 1.8 */
   color: var(--fg-dim);
 }
 
@@ -341,65 +378,72 @@ a:hover { color: var(--accent); }
   color: var(--fg-dim);
   margin: 0;
 }
-.section-title { font-family: var(--serif); font-size: 1.7rem; font-weight: 700; margin: 0.5rem 0 0; }
+.section-title { font-family: var(--serif); font-size: 1.7rem; font-weight: 500; margin: 0.5rem 0 0; }
 .section-intro { max-width: 34em; margin: 0.7rem 0 0; font-size: 0.94rem; color: var(--fg-dim); }
 
 /* ============ 三入口 ============ */
 .start-here { display: grid; gap: 1rem; margin-top: 2rem; grid-template-columns: 1fr; }
 @media (min-width: 780px) { .start-here { grid-template-columns: repeat(3, 1fr); } }
+/* K2 ⑩：路径卡/总纲卡去盒子化（与②同语言）：去底色+描边 → 顶部发丝线+留白；
+   hover 只换线色（去掉 translateY 浮起） */
 .start-card {
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
-  padding: 1.5rem 1.4rem 1.3rem;
-  border: 1px solid var(--rule);
-  background: var(--bg-card);
+  padding: 1.35rem 0.25rem 1.1rem;
+  border: none;
+  border-top: 1px solid var(--rule);
+  background: transparent;
   text-decoration: none;
-  transition: border-color 0.15s ease, transform 0.15s ease;
+  transition: border-color 0.15s ease;
 }
-.start-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.start-card:hover { border-top-color: var(--accent); }
 .sc-num { font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.12em; color: var(--accent); }
-.sc-title { font-family: var(--serif); font-size: 1.28rem; font-weight: 700; text-decoration: none; }
+.sc-title { font-family: var(--serif); font-size: 1.28rem; font-weight: 500; text-decoration: none; }
 .sc-title:hover { color: var(--accent); }
-.sc-desc { font-size: 0.9rem; line-height: 1.8; color: var(--fg-dim); }
+.sc-desc { font-size: 0.9rem; line-height: 1.55; color: var(--fg-dim); }
 .sc-path {
   margin-top: auto;
   padding-top: 0.75rem;
   border-top: 1px dashed var(--rule);
+  font-family: var(--sans); /* K1：路径 meta 走 sans */
   font-size: 0.82rem;
   color: var(--fg-dim);
-  line-height: 1.9;
+  line-height: 1.55;
 }
-.sc-path b { color: var(--fg); font-weight: 600; }
 
 /* ============ 六域地图 ============ */
+/* K2 ⑩：六域地图去盒子化——去 1px-gap 发丝网格（background:var(--rule) 技巧）+ 外框 → 透明+留白 */
 .domain-map {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1px;
+  gap: 1.5rem;
   margin-top: 2rem;
-  background: var(--rule);
-  border: 1px solid var(--rule);
+  background: transparent;
 }
 @media (min-width: 760px) { .domain-map { grid-template-columns: repeat(2, 1fr); } }
 @media (min-width: 1120px) { .domain-map { grid-template-columns: repeat(3, 1fr); } }
+/* K2 ⑩：域卡编辑化——顶部发丝线+留白，单色；hover 顶部线与域名转墨蓝（原整卡 accent-soft 底） */
 .domain-card {
   display: block;
-  padding: 1.7rem 1.5rem 1.4rem;
-  background: var(--bg-card);
+  padding: 1.25rem 0.25rem 1.1rem;
+  background: transparent;
+  border-top: 1px solid var(--rule);
   text-decoration: none;
-  transition: background 0.15s ease;
+  transition: border-color 0.15s ease;
 }
-.domain-card:hover { background: var(--accent-soft); }
+.domain-card:hover { border-top-color: var(--accent); }
+.domain-card:hover .dc-name { color: var(--accent); }
 /* P2-A3（02-P-18）：域卡编号是「第几域」信息不是装饰——rule-strong(1.72:1) 提升为 fg-dim(5.3:1) */
 .dc-num { font-family: var(--serif); font-size: 1.9rem; line-height: 1; color: var(--fg-dim); }
-.dc-name { font-family: var(--serif); font-size: 1.32rem; font-weight: 700; margin: 0.6rem 0 0; }
-.dc-essence { margin: 0.55rem 0 0; font-size: 0.89rem; line-height: 1.85; color: var(--fg-dim); }
+.dc-name { font-family: var(--serif); font-size: 1.32rem; font-weight: 500; margin: 0.6rem 0 0; }
+.dc-essence { margin: 0.55rem 0 0; font-size: 0.89rem; line-height: 1.55; color: var(--fg-dim); }
 /* P2-C6（02-P-17）：「N 条 · A 级 M 条」中文为主，去 mono */
 .dc-meta {
   margin-top: 1rem;
   padding-top: 0.7rem;
   border-top: 1px solid var(--rule);
+  font-family: var(--sans); /* K1：meta 走 sans */
   font-size: 0.74rem;
   color: var(--fg-dim);
 }
@@ -419,36 +463,40 @@ summary.dom-summary::-webkit-details-marker { display: none; }
 summary.dom-summary::after { content: "＋"; margin-left: auto; font-family: var(--mono); color: var(--fg-dim); }
 details[open] > summary.dom-summary::after { content: "－"; }
 .dom-summary-num { font-family: var(--mono); font-size: 0.78rem; color: var(--accent); }
-.dom-summary-name { font-family: var(--serif); font-size: 1.06rem; font-weight: 700; }
+.dom-summary-name { font-family: var(--serif); font-size: 1.06rem; font-weight: 500; }
 /* P2-C6（02-P-17）：「N 条」中文单位，去 mono（编号 .dom-summary-num 的 mono 保留） */
-.dom-summary-count { font-size: 0.76rem; color: var(--fg-dim); }
+.dom-summary-count { font-family: var(--sans); font-size: 0.76rem; color: var(--fg-dim); }
 .dom-summary-essence { font-size: 0.85rem; color: var(--fg-dim); }
 .dir-list { list-style: none; margin: 0; padding: 0 0 1.4rem; display: grid; gap: 0; }
 @media (min-width: 880px) { .dir-list { grid-template-columns: 1fr 1fr; column-gap: 2.4rem; } }
 .dir-item { padding: 0.62rem 0; border-bottom: 1px dashed var(--rule); }
-.dir-link { font-size: 0.97rem; font-weight: 600; text-decoration: none; }
-.dir-kicker { margin: 0.18rem 0 0; font-size: 0.82rem; line-height: 1.7; color: var(--fg-dim); }
+.dir-link { font-size: 0.97rem; font-weight: 500; text-decoration: none; }
+.dir-kicker { margin: 0.18rem 0 0; font-size: 0.82rem; line-height: 1.55; color: var(--fg-dim); }
 .dir-ev {
   display: inline-block;
   margin-right: 0.45rem;
   font-family: var(--mono); /* 证据等级 A/B/C 是 Latin 编码，mono 保留（P2-C6） */
   font-size: 0.72rem;
+  line-height: 1.45;
   color: var(--fg-dim);
   border: 1px solid var(--rule);
   border-radius: 2px;
-  padding: 0 0.3rem;
+  padding: 0.04rem 0.35rem;
   vertical-align: 0.08em;
 }
-.dir-ev.ev-A { color: var(--ok); border-color: var(--ok); }
-/* 证据三级：A 一手（绿）/ B 定性可核（实线中性）/ C 民间共识（虚线淡字） */
-.dir-ev.ev-B { color: var(--fg); border-color: var(--rule-strong); font-weight: 600; }
-.dir-ev.ev-C { color: var(--fg-dim); border-style: dashed; }
+/* K2 ① 证据徽标三态（solid hex 色块，禁 rgba）：
+   A 级 = solid 墨蓝底 + on-accent 字 / B 级 = 墨蓝细描边 + 墨蓝字（透明底）/
+   C 级 = 暖灰 bg-soft 底 + fg-dim 字。 */
+.dir-ev.ev-A { background: var(--ok); color: var(--on-accent); border-color: var(--ok); }
+.dir-ev.ev-B { background: transparent; color: var(--ok); border-color: var(--ok); }
+.dir-ev.ev-C { background: var(--bg-soft); color: var(--fg-dim); border-color: var(--rule); }
 
 /* ============ 条目页 ============ */
 /* P2-C6（02-P-17）：面包屑「第 3 域 · N 条」中文为主，去 mono */
 .entry-crumb {
+  font-family: var(--sans); /* K1：面包屑 UI 走 sans；中文不加 spacing */
   font-size: 0.76rem;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   color: var(--fg-dim);
   margin: 2.4rem 0 0;
 }
@@ -456,39 +504,42 @@ details[open] > summary.dom-summary::after { content: "－"; }
 .entry-header h1 {
   font-family: var(--serif);
   font-size: clamp(1.75rem, 4vw, 2.35rem);
-  line-height: 1.32;
-  letter-spacing: -0.005em;
+  line-height: 1.15; /* K1：h1 行高 1.15（旧 1.32） */
   margin: 0.7rem 0 0;
 }
 .entry-lede {
   max-width: var(--measure);
   margin: 1.1rem 0 0;
   font-size: 1.02rem;
-  line-height: 1.95;
+  line-height: 1.55; /* K1：旧 1.95 */
   color: var(--fg-dim);
 }
-.entry-meta { margin: 0.9rem 0 0; font-size: 0.82rem; color: var(--fg-dim); }
+.entry-meta { margin: 0.9rem 0 0; font-family: var(--sans); font-size: 0.82rem; color: var(--fg-dim); }
 /* 「又称」行（N1-a）：别名在条目页可见——用户真实记忆词有入口 */
-.entry-aliases { margin: 0.35rem 0 0; font-size: 0.85rem; color: var(--fg-dim); }
-.entry-aliases::before { content: "又称："; font-weight: 600; color: var(--fg); }
+.entry-aliases { margin: 0.35rem 0 0; font-family: var(--sans); font-size: 0.85rem; color: var(--fg-dim); }
+.entry-aliases::before { content: "又称："; font-weight: 500; color: var(--fg); }
 /* 层级标签（t9 layer 字段：理念|执行|档案|工具；未填时模板不渲染） */
 /* P2-C6（02-P-17）：0.68→0.72 下限；中文层级名去 mono */
 .layer-tag {
   display: inline-block;
+  font-family: var(--sans); /* K1：徽章走 sans */
   font-size: 0.72rem;
+  line-height: 1.5;
   color: var(--fg-dim);
-  border: 1px solid var(--rule-strong);
+  border: none; /* K2 ⑨：去描边冗余 */
   border-radius: 999px;
-  padding: 0.02rem 0.5rem;
+  background: var(--accent-soft); /* K2 ⑨：solid hex 底 */
+  padding: 0.04rem 0.5rem;
   margin-left: 0.45rem;
   vertical-align: 0.12em;
   white-space: nowrap;
 }
-/* P1-13（02-P-14/U-3）：layer 四色信号——三处 layer-tag（首页目录/域页/条目头）
-   + 域页层直达 chip + 层段标题共用。只用于小元素（tag 边框、chip 圆点、段标题左条），
-   不用大色块（杂志风克制）。理念=accent（橙）/ 执行=ok（绿）/ 档案=fg-dim（灰）/ 工具=warn（黄）。
+/* P1-13（02-P-14/U-3）：layer 信号——三处 layer-tag（首页目录/域页/条目头）
+   + 域页层直达 chip + 层段标题共用。只用于小元素（tag 边框、chip 圆点、段标题左条）。
+   K1 单色纪律后：理念=accent 墨蓝 / 执行=accent 墨蓝（--ok 别名）/ 档案=fg-dim 暖灰 / 工具=暖中性 fg（--warn 别名）——
+   原四色（橙/绿/灰/黄）的第二色相已全部映射到 强调+暖中性，具体形态 K2 定。
    色值经 .layer-X 自定义属性 --layer-c 挂到元素上，各消费处引 var(--layer-c)。
-   前置：t6 已修马克斯 pair 的 layer 矛盾（档案→理念），四色不会把数据矛盾固化进 UI。 */
+   前置：t6 已修马克斯 pair 的 layer 矛盾（档案→理念），不会把数据矛盾固化进 UI。 */
 .layer-理念 { --layer-c: var(--accent); }
 .layer-执行 { --layer-c: var(--ok); }
 .layer-档案 { --layer-c: var(--fg-dim); }
@@ -497,8 +548,7 @@ details[open] > summary.dom-summary::after { content: "－"; }
 .layer-tag.layer-执行,
 .layer-tag.layer-档案,
 .layer-tag.layer-工具 {
-  color: var(--layer-c);
-  border-color: var(--layer-c);
+  color: var(--layer-c); /* K2 ⑨：只留文字色，去 border-color（描边已删） */
 }
 .chip.layer-理念,
 .chip.layer-执行,
@@ -522,7 +572,7 @@ details[open] > summary.dom-summary::after { content: "－"; }
   margin: 2.1rem 0 0.2rem;
   font-family: var(--serif);
   font-size: 1.28rem;
-  font-weight: 700;
+  font-weight: 500;
   border-left: 3px solid var(--layer-c);
   padding-left: 0.8rem;
   scroll-margin-top: calc(var(--header-h) + 0.5rem);
@@ -531,26 +581,29 @@ details[open] > summary.dom-summary::after { content: "－"; }
 /* P1-11（02-P-07）：<640px 由单列纵排改 2×2——原单列下最坏条目（长 keyNumber+长 maxRisk）
    估算 1050–1150px 超移动视口；超长的 keyNumber 另由模板层折叠为「大数字+首句+details」
    （[...slug].astro，qc-more），两处叠加后移动端速览区显著收敛（目检：附录 A-10）。 */
+/* K2 ② 速览卡去盒子化：去卡面底色与 1px-gap 毛边网格（background:var(--rule) 技巧）
+   → 透明 + 纯留白列间距 + 每卡底部发丝线；
+   K2 结构修复②：align-items:start 自然高度（7 字卡不再被拉到同高）。 */
 .quick-cards {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1px;
+  gap: 1rem 1.6rem;
   margin: 1.9rem 0 0;
-  background: var(--rule);
-  border: 1px solid var(--rule);
+  align-items: start;
 }
 /* U3：4 卡固定——宽屏四列；1024–1279 仍两列，避免每卡过窄 */
 @media (min-width: 1280px) { .quick-cards { grid-template-columns: repeat(4, 1fr); } }
-.quick-card { background: var(--bg-card); padding: 1rem 1.05rem 1.05rem; }
+.quick-card { background: transparent; padding: 0 0 0.75rem; border-bottom: 1px solid var(--rule); }
 /* P2-C6（02-P-17）：速览卡标签（证据等级/什么时候用/…）中文去 mono + 0.7→0.72 下限 */
-.qc-label { display: block; font-size: 0.72rem; letter-spacing: 0.06em; color: var(--fg-dim); }
-.qc-value { margin: 0.45rem 0 0; font-size: 0.93rem; line-height: 1.7; }
-.qc-value.is-num { font-family: var(--mono); font-size: 1.45rem; font-weight: 600; letter-spacing: -0.01em; }
+.qc-label { display: block; font-family: var(--sans); font-size: 0.72rem; line-height: 1.4; letter-spacing: 0; color: var(--fg-dim); }
+.qc-value { margin: 0.35rem 0 0; font-size: 0.93rem; line-height: 1.55; }
+/* K2 ②：值用衬线（大数字 mono→serif，与 stat 墙/crash-strip 同语言） */
+.qc-value.is-num { font-family: var(--serif); font-size: 1.45rem; font-weight: 500; letter-spacing: -0.01em; }
 .qc-value.is-risk { color: var(--risk); }
 /* U4/E1：关键数字两层——大数字（首个数字串）在上，完整口径小字在下。
    实测 keyNumber 并非都「约定写在最前」，故小字保留完整原文（不折断散文），
    大数字只作视觉钩子。 */
-.qc-value .qc-figure { display: block; font-size: 1.45rem; font-weight: 600; letter-spacing: -0.01em; }
+.qc-value .qc-figure { display: block; font-family: var(--serif); font-size: 1.45rem; font-weight: 500; letter-spacing: -0.01em; }
 .qc-value .qc-note {
   display: block;
   margin-top: 0.35rem;
@@ -558,7 +611,7 @@ details[open] > summary.dom-summary::after { content: "－"; }
   font-size: 0.78rem;
   font-weight: 400;
   letter-spacing: 0;
-  line-height: 1.65;
+  line-height: 1.5;
   color: var(--fg-dim);
 }
 /* P1-11（02-P-07）：超长 keyNumber 的「完整口径」展开（零 JS details）。 */
@@ -566,6 +619,7 @@ details[open] > summary.dom-summary::after { content: "－"; }
 /* P2-C6（02-P-17）：「完整口径」是中文，去 mono + 0.7→0.72 下限 */
 .qc-more summary {
   cursor: pointer;
+  font-family: var(--sans);
   font-size: 0.72rem;
   color: var(--fg-dim);
   list-style: none;
@@ -581,9 +635,11 @@ details[open] > summary.dom-summary::after { content: "－"; }
   margin-left: 0.4rem;
   font-family: var(--sans);
   font-size: 0.72rem; /* P2-C6（02-P-17）：0.66rem 是全站最小功能文字，提到标签下限 */
-  font-weight: 600;
-  color: var(--warn);
-  border: 1px solid var(--warn);
+  font-weight: 500;
+  /* K2 ①：disputed 徽章 = 墨蓝描边（原 --warn 正色描边 → 唯一强调色） */
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  background: transparent;
   border-radius: 2px;
   padding: 0.02rem 0.3rem;
   vertical-align: 0.18em;
@@ -598,6 +654,9 @@ details[open] > summary.dom-summary::after { content: "－"; }
    scroll-margin 可精确叠加；变量只由 :has(.concl-bar) 的条目页 article 注入，
    其他页面（无结论条）保持 0 偏移，行为不变。 */
 article:has(.concl-bar) { --concl-h: 2.2rem; }
+/* K2 ③ 细墨线结论条：上下 1px hairline；背景去 bg 92%+blur 染色块——sticky 条必须
+   遮住底下滚动的正文，故用实心 var(--bg)（任务书「透明」选项对 sticky 不可行，见交付报告）；
+   文字衬线（K1 sans → K2 serif 承载权威）；sticky 行为与 --concl-h 锁高不变。 */
 .concl-bar {
   position: sticky;
   top: var(--header-h);
@@ -607,10 +666,10 @@ article:has(.concl-bar) { --concl-h: 2.2rem; }
   gap: 0.6rem;
   height: var(--concl-h);
   box-sizing: border-box;
+  border-top: 1px solid var(--rule);
   border-bottom: 1px solid var(--rule);
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  background: var(--bg);
+  font-family: var(--serif);
   font-size: 0.85rem;
   line-height: 1.3;
 }
@@ -620,14 +679,14 @@ article:has(.concl-bar) { --concl-h: 2.2rem; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--fg);
 }
 .concl-bar .dir-ev { flex: none; margin-right: 0; }
 .cb-num {
-  font-family: var(--mono);
+  font-family: var(--serif); /* K2 ③：结论条数字随条内文字一起衬线化 */
   font-size: 1.15rem;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1.2;
   flex: none;
 }
@@ -660,16 +719,19 @@ article:has(.concl-bar) { --concl-h: 2.2rem; }
   scrollbar-width: none;
 }
 .section-chips::-webkit-scrollbar { display: none; }
+/* K2 ⑨：chip solid hex 底 + 去描边（accent-soft 实心块，hover 只出墨蓝字） */
 .chip {
   flex: none;
   padding: 0.28rem 0.82rem;
-  border: 1px solid var(--rule);
+  border: none;
   border-radius: 999px;
+  font-family: var(--sans); /* K1：chip UI 走 sans */
   font-size: 0.82rem;
-  color: var(--fg-dim);
+  background: var(--accent-soft);
+  color: var(--fg);
   text-decoration: none;
 }
-.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip:hover { color: var(--accent); }
 /* ============ 路径进度 chip 行（P2-C3 / U-4） ============
    路径在离开首页的一刻就断（02-P-05）——条目页速览卡下方补「PATH 0X · n/m → 下一步」。
    普通流（非 sticky）：与 sticky 结论条/页内目录 chips 无叠压，窄屏随文档换行。
@@ -709,7 +771,7 @@ article:has(.concl-bar) { --concl-h: 2.2rem; }
 .entry-body h2 {
   font-family: var(--serif);
   font-size: 1.45rem;
-  font-weight: 700;
+  font-weight: 500; /* K1：权重锁 500（行高由全局 h2 规则给 1.2） */
   margin: 0 0 1.1rem;
   padding-bottom: 0.55rem;
   border-bottom: 1px solid var(--rule);
@@ -728,7 +790,7 @@ article:has(.concl-bar) { --concl-h: 2.2rem; }
   margin-right: 0.5rem;
   vertical-align: -0.05em;
 }
-.entry-body strong { font-weight: 600; }
+.entry-body strong { font-weight: 500; } /* 颜色走全局 strong,b 规则（accent 墨蓝） */
 .entry-body code {
   font-family: var(--mono);
   font-size: 0.88em;
@@ -744,7 +806,7 @@ article:has(.concl-bar) { --concl-h: 2.2rem; }
   border: 1px solid var(--rule);
   padding: 0.9rem 1rem;
   font-size: 0.84rem;
-  line-height: 1.7;
+  line-height: 1.55; /* K1：旧 1.7（永不 1.6+） */
 }
 .entry-body pre code { background: none; border: none; padding: 0; }
 /* U6/E6：shiki 双主题的暗色切换。astro.config.mjs 配了
@@ -774,15 +836,16 @@ article:has(.concl-bar) { --concl-h: 2.2rem; }
   vertical-align: top;
 }
 .entry-body thead th {
-  border-bottom: 2px solid var(--rule-strong);
+  font-family: var(--sans); /* K1：表头 UI 走 sans */
+  border-bottom: 1px solid var(--rule-strong); /* K2 ⑧：表头底部强线（2px→1px 细单线） */
   font-size: 0.78rem;
-  letter-spacing: 0.05em;
+  letter-spacing: 0; /* 中文列名不加 spacing */
   color: var(--fg-dim);
-  font-weight: 600;
+  font-weight: 500;
 }
-.entry-body tbody tr:nth-child(even) { background: var(--bg-soft); }
+/* K2 ⑧：去斑马纹底色（原 tbody tr:nth-child(even) bg-soft）——行只靠发丝线分隔 */
 /* P2-C6（02-P-17）：「步骤/算例/做完你会得到」等中文分段标签，去 mono */
-.part-label { font-size: 0.8rem; letter-spacing: 0.06em; color: var(--accent); }
+.part-label { font-family: var(--sans); font-size: 0.8rem; letter-spacing: 0; color: var(--accent); }
 .howto-part { margin: 1.3rem 0; padding-left: 1rem; border-left: 2px solid var(--rule); }
 .howto-when { border-left-color: var(--rule-strong); }
 .howto-steps { border-left-color: var(--accent); }
@@ -822,7 +885,7 @@ article:has(.concl-bar) { --concl-h: 2.2rem; }
    toc-d2 = h2 节（howto/plain/gain/perf/source/notes），toc-d3 = 八问复盘/四副眼镜
    h3 + 四段 part-label（when/steps/output/pass），缩一级表层级。
    锚点目标需越过 页头+结论条 双层 sticky，与 h2 的 scroll-margin-top 同口径。 */
-details.toc { max-width: var(--measure); margin: 1rem 0 0; border: 1px solid var(--rule); }
+details.toc { max-width: var(--measure); margin: 1rem 0 0; border: none; } /* K2 ⑥：TOC 去盒子化——去 1px 外框 → 透明 */
 details.toc > summary {
   display: flex;
   align-items: baseline;
@@ -830,27 +893,31 @@ details.toc > summary {
   padding: 0.6rem 0.9rem;
   cursor: pointer;
   list-style: none;
+  font-family: var(--sans); /* K1：页内 TOC UI 走 sans */
   font-size: 0.78rem;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   color: var(--fg-dim);
 }
 details.toc > summary::-webkit-details-marker { display: none; }
 details.toc > summary::after { content: "＋"; margin-left: auto; font-family: var(--mono); color: var(--fg-dim); }
 details.toc[open] > summary::after { content: "－"; }
 details.toc > summary:hover { color: var(--accent); }
-.toc-list { list-style: none; margin: 0.35rem 0 0.45rem; padding: 0 0.9rem; }
+/* K2 ⑥：列表发丝左边线 + 纯留白（原 padding 0 0.9rem 四周） */
+.toc-list { list-style: none; margin: 0.35rem 0 0.45rem; padding: 0.15rem 0.9rem 0.4rem 1rem; border-left: 1px solid var(--rule); }
 .toc-list li { margin: 0.1rem 0; }
 .toc-list li.toc-d3 { padding-left: 1rem; }
 .toc-list a {
   display: block;
   padding: 0.16rem 0.35rem;
   border-radius: 2px;
-  font-size: 0.82rem;
+  font-family: var(--serif); /* K2 ⑥：锚点衬线（原 sans） */
+  font-size: 0.84rem;
   color: var(--fg-dim);
   text-decoration: none;
 }
-.toc-list li.toc-d3 a { font-size: 0.78rem; }
-.toc-list a:hover { color: var(--accent); background: var(--bg-soft); }
+.toc-list li.toc-d3 a { font-size: 0.8rem; }
+/* K2 ⑥：hover 只出墨蓝字，无底色块（原 bg-soft） */
+.toc-list a:hover { color: var(--accent); }
 .entry-body h3[id], .entry-body p.howto-part[id] {
   scroll-margin-top: calc(var(--header-h) + var(--concl-h, 0rem) + 3.2rem);
 }
@@ -862,30 +929,57 @@ details.toc > summary:hover { color: var(--accent); }
    加粗用 weight 补回）。被转列表均为 tight 列表（loose 列表 li 内容被 <p> 包裹、
    无 inline 子节点，插件降级原样保留），故 summary 后是纯 inline 流——
    用 details padding + summary 负 margin 做全宽分隔与内容缩进。 */
-.q-item { margin: 0.55rem 0; padding: 0 0.85rem; border: 1px solid var(--rule); background: var(--bg-card); }
+/* K2 ⑦ q-item 耳语化：去边框 + 卡面底色块 → 纯留白；summary 衬线 500 + ▸（▸/▾/hover
+   语言不变）；项间留白 1rem；展开无阴影（本就无，仅去背景块）。 */
+.q-item { margin: 1rem 0; padding: 0; border: none; background: transparent; }
 .q-item > summary {
   display: block;
-  margin: 0 -0.85rem;
-  padding: 0.55rem 0.85rem;
+  margin: 0;
+  padding: 0.12rem 0;
   cursor: pointer;
   list-style: none;
-  font-size: 0.9rem;
-  font-weight: 600;
+  font-family: var(--serif);
+  font-size: 0.95rem;
+  font-weight: 500; /* 插件移除了 strong——层级靠 ▸ + hover 色（K2：边框已去） */
   color: var(--fg);
 }
 .q-item > summary::-webkit-details-marker { display: none; }
 .q-item > summary::before { content: "▸ "; color: var(--accent); }
 .q-item[open] > summary::before { content: "▾ "; }
 .q-item > summary:hover { color: var(--accent); }
+
+/* ============ K2 结构修复③：算例说明折叠（耳语，零 JS） ============
+   headings.mjs：「怎么做」节内、段落以「算例说明」起头（可带「（可复算）」尾注、
+   后接冒号）的 p → <details class="note-fold">（默认关）<summary>算例说明</summary>
+   余文。文字逐字保留：标签移进 summary，冒号及以后原序留在正文——details 序列化
+   文本与原段落逐字一致。折叠语言同 qc-more（▸/▾、hover 色、marker 隐藏）；
+   summary 衬线、次级色（比 q-item 更耳语——算例说明是可跳过的验算细节）。 */
+.note-fold { margin: 1.05rem 0; }
+.note-fold > summary {
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--fg-dim);
+  padding: 0.05rem 0;
+}
+.note-fold > summary::-webkit-details-marker { display: none; }
+.note-fold > summary::before { content: "▸ "; color: var(--accent); }
+.note-fold[open] > summary::before { content: "▾ "; }
+.note-fold > summary:hover { color: var(--accent); }
+.note-fold > *:not(summary) { margin-top: 0.5rem; }
 /* 深潜 chip（2026-10-17 P1）：正文 CJK 字数 ceil(/350) 分钟 ≥10 → meta 行「档案 · 约 N 分钟」。
    徽章语言照 dir-ev（小框徽章、2px 圆角、0.72 下限）；色取档案层 fg-dim（与 layer-档案 同）。 */
 .depth-chip {
   display: inline-block;
+  font-family: var(--sans); /* K1：徽章走 sans */
   font-size: 0.72rem;
   color: var(--fg-dim);
-  border: 1px solid var(--rule-strong);
+  border: none; /* K2 ⑨：去描边冗余 */
   border-radius: 2px;
-  padding: 0 0.3rem;
+  background: var(--bg-soft); /* K2 ⑨：solid hex 底 */
+  padding: 0.04rem 0.35rem;
   vertical-align: 0.08em;
   white-space: nowrap;
 }
@@ -902,28 +996,33 @@ details.toc > summary:hover { color: var(--accent); }
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: stretch;
-  border: 1px dashed var(--rule-strong);
-  background: var(--bg-card);
+  /* K2 ④ 细线三栏：去虚线粗框 + 卡面底色 → 上下 1px hairline + 透明底 */
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  background: transparent;
 }
-.cs-col { display: flex; flex-direction: column; gap: 0.18rem; padding: 0.7rem 1.05rem 0.75rem; }
-.cs-col + .cs-col { border-left: 1px dashed var(--rule-strong); }
-.cs-label { font-size: 0.72rem; letter-spacing: 0.06em; color: var(--fg-dim); }
-.cs-num { font-family: var(--mono); font-size: 1.55rem; font-weight: 600; letter-spacing: -0.01em; overflow-wrap: anywhere; }
-/* 跌幅列：字号强调（不用颜色——品牌单色纪律；--fg 即最深前景，无新色） */
-.cs-num.cs-drop { font-size: 1.95rem; color: var(--fg); }
-.cs-date { font-family: var(--mono); font-size: 0.74rem; color: var(--fg-dim); overflow-wrap: anywhere; }
+.cs-col { display: flex; flex-direction: column; gap: 0.18rem; padding: 0.8rem 1.05rem 0.8rem; }
+/* K2 ④：列间发丝线（原虚线 rule-strong → 细单线 rule） */
+.cs-col + .cs-col { border-left: 1px solid var(--rule); }
+.cs-label { font-family: var(--sans); font-size: 0.72rem; letter-spacing: 0; color: var(--fg-dim); }
+/* K2 ④：数字衬线大字（mono→serif） */
+.cs-num { font-family: var(--serif); font-size: 1.55rem; font-weight: 500; letter-spacing: -0.01em; overflow-wrap: anywhere; }
+/* K2 ④：跌幅列墨蓝（唯一强调色；K2 任务书明确，取代 K1「强调不用颜色」的旧口径） */
+.cs-num.cs-drop { font-size: 1.95rem; color: var(--accent); }
+.cs-date { font-family: var(--serif); font-size: 0.8rem; color: var(--fg-dim); overflow-wrap: anywhere; }
 .cs-recover {
   grid-column: 1 / -1;
   margin: 0;
   padding: 0.5rem 1.05rem 0.6rem;
-  border-top: 1px dashed var(--rule-strong);
+  border-top: 1px solid var(--rule);
+  font-family: var(--sans);
   font-size: 0.76rem;
-  line-height: 1.6;
+  line-height: 1.5;
   color: var(--fg-dim);
 }
 @media (max-width: 639px) {
   .crash-strip { grid-template-columns: 1fr; }
-  .cs-col + .cs-col { border-left: none; border-top: 1px dashed var(--rule-strong); }
+  .cs-col + .cs-col { border-left: none; border-top: 1px solid var(--rule); }
 }
 
 /* ============ 崩盘时间线提层 .timeline（2026-10-18 崩盘可视化批 A，渲染层 move） ============
@@ -932,23 +1031,60 @@ details.toc > summary:hover { color: var(--accent); }
    日期前缀 <b class="t-date"> 等宽 + fg 强调（单色纪律，不用新色）；窄屏不溢出
    （日期 nowrap、段文可断，与 quick-card/.cb-num 同款 overflow-wrap）。 */
 .timeline { max-width: var(--measure); margin: 1.1rem 0 0; }
-.tl-title { margin: 0 0 0.45rem; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.04em; }
-.tl-list { list-style: none; margin: 0; padding: 0 0 0 1.3rem; border-left: 2px solid var(--rule-strong); }
-.tl-list li { position: relative; margin: 0.32rem 0; font-size: 0.86rem; line-height: 1.7; overflow-wrap: anywhere; }
+.tl-title { margin: 0 0 0.45rem; font-family: var(--sans); font-size: 0.9rem; font-weight: 500; letter-spacing: 0; }
+/* K2 ⑤ 细单线几何：左竖线 2px rule-strong → 1px rule */
+.tl-list { list-style: none; margin: 0; padding: 0 0 0 1.3rem; border-left: 1px solid var(--rule); }
+/* K2 ⑤：节点文字衬线 */
+.tl-list li { position: relative; margin: 0.4rem 0; font-size: 0.88rem; line-height: 1.55; overflow-wrap: anywhere; font-family: var(--serif); }
+/* K2 ⑤：节点点 6px 实心墨蓝（非渐变非阴影，原 bg 底+fg 描边圆环） */
 .tl-list li::before {
   content: "";
   position: absolute;
-  left: calc(-1.3rem - 3.5px); /* 圆点中心对准左竖线（1.3rem padding + 2px 线宽） */
+  left: calc(-1.3rem - 3.5px); /* 圆点中心对准左竖线（1.3rem padding + 1px 线宽） */
   top: 0.55em;
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--bg);
-  border: 2px solid var(--fg);
+  background: var(--accent);
 }
-.t-date { font-family: var(--mono); font-weight: 600; color: var(--fg); margin-right: 0.45rem; white-space: nowrap; }
-.t-text { color: var(--fg); }
-.t-text strong { font-weight: 600; }
+/* K2 ⑤：t-date 改 solid hex 徽章——accent-soft 底 + 墨蓝字，无描边，sans 小字（mono→sans 徽章） */
+.t-date {
+  display: inline-block;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 2px;
+  padding: 0.05rem 0.4rem;
+  margin-right: 0.5rem;
+  white-space: nowrap;
+}
+.t-text { font-family: var(--serif); color: var(--fg); }
+/* K2 结构修复①：时间线默认折叠——[...slug].astro 外包 <details class="tl-fold">（零 JS，默认关）；
+   summary 衬线 + ▸，折叠态只占 1 行（超长省略号截断）；展开后隐藏块内 .tl-title，
+   避免与 summary 文案重复。无时间线条目不渲染本块（模板条件不变）。 */
+.tl-fold { max-width: var(--measure); margin: 1.1rem 0 0; }
+.tl-fold > summary {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0.3rem 0;
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--fg);
+}
+.tl-fold > summary::-webkit-details-marker { display: none; }
+.tl-fold > summary::before { content: "▸ "; color: var(--accent); }
+.tl-fold[open] > summary::before { content: "▾ "; }
+.tl-fold > summary:hover { color: var(--accent); }
+.tl-fold .timeline { margin: 0.35rem 0 0; }
+.tl-fold[open] .tl-title { display: none; }
 /* q-item 原地指针句（提取成功时原时间线被替换）：小字灰，不抢正文。 */
 .tl-pointer { margin: 0.4rem 0 0.15rem; font-size: 0.8rem; color: var(--fg-dim); }
 
@@ -963,7 +1099,7 @@ details.toc > summary:hover { color: var(--accent); }
   cursor: pointer;
 }
 .wl:hover { color: var(--accent); text-decoration-color: var(--accent); }
-/* 未收录目标：about.md 承诺的「橙色虚线」标记（潜伏规则，当前 0 处使用）。
+/* 未收录目标：about.md 承诺的「橙色虚线」标记（K1 后为墨蓝虚线；潜伏规则，当前 0 处使用）。
    须放在 .wl 之后——span 同时带 wl/wl-missing 两个类，靠源顺序覆盖下划线。 */
 .wl-missing {
   text-decoration: none;
@@ -974,20 +1110,20 @@ details.toc > summary:hover { color: var(--accent); }
 
 /* ============ 域页 ============ */
 .topic-head { padding: 3.4rem 0 0; }
-.topic-essence { max-width: 34em; margin: 1rem 0 0; font-size: 1rem; line-height: 1.9; color: var(--fg-dim); }
+.topic-essence { max-width: 34em; margin: 1rem 0 0; font-size: 1rem; line-height: 1.55; color: var(--fg-dim); }
 .topic-list { list-style: none; margin: 2.4rem 0 0; padding: 0; }
 .topic-list > li { padding: 1.15rem 0; border-top: 1px solid var(--rule); }
 .topic-list > li:last-child { border-bottom: 1px solid var(--rule); }
-.topic-item-title { font-family: var(--serif); font-size: 1.14rem; font-weight: 700; text-decoration: none; }
-.topic-item-kicker { margin: 0.3rem 0 0; font-size: 0.89rem; line-height: 1.8; color: var(--fg-dim); max-width: 44em; }
+.topic-item-title { font-family: var(--serif); font-size: 1.14rem; font-weight: 500; text-decoration: none; }
+.topic-item-kicker { margin: 0.3rem 0 0; font-size: 0.89rem; line-height: 1.55; color: var(--fg-dim); max-width: 44em; }
 /* P2-C6（02-P-17）：「收益档位 · 量纲 · 证据」中文为主，去 mono */
-.topic-item-meta { margin: 0.45rem 0 0; font-size: 0.74rem; color: var(--fg-dim); }
+.topic-item-meta { margin: 0.45rem 0 0; font-family: var(--sans); font-size: 0.74rem; color: var(--fg-dim); }
 .topic-nav { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 2rem; }
 
 /* ============ 反链 ============ */
 .backlinks { max-width: var(--measure); margin-top: 4.5rem; padding-top: 1.4rem; border-top: 2px solid var(--fg); }
 /* P2-C6（02-P-17）：「反链来源/同域相关」中文标题，去 mono */
-.backlinks-title { margin: 0 0 0.9rem; font-size: 0.76rem; letter-spacing: 0.06em; color: var(--fg-dim); }
+.backlinks-title { margin: 0 0 0.9rem; font-family: var(--sans); font-size: 0.76rem; letter-spacing: 0; color: var(--fg-dim); }
 .backlinks ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; }
 /* P2-A4（02-P-19）：反链/同域相关是主要交叉导航——与 .wl 同语言（rule-strong 细下划线常显，hover 出强调色） */
 .backlinks a {
@@ -1008,18 +1144,19 @@ details.toc > summary:hover { color: var(--accent); }
   padding: 0.7rem 1.15rem;
   border: 1px solid var(--rule-strong);
   border-radius: 2px;
+  font-family: var(--sans); /* K1：按钮 UI 走 sans */
   text-decoration: none;
-  font-weight: 600;
+  font-weight: 500;
 }
 .btn:hover { border-color: var(--accent); color: var(--accent); }
 
 @media (max-width: 640px) {
   html { font-size: 16px; }
-  .hero { padding: 3rem 0 2rem; }
+  .hero { padding: 3.8rem 0 2.4rem; } /* K2 ⑩：窄屏留白同比例加大 */
   .section { margin-top: 3.6rem; }
   /* P1-11：2×2 速览卡在窄屏每卡减半宽——压内边距、大数字缩一档，
      给「22,730.35」级长数字留折行余量（目检：附录 A-10）。 */
-  .quick-card { padding: 0.8rem 0.85rem 0.85rem; }
+  .quick-card { padding: 0 0 0.75rem; }
   .qc-value.is-num { font-size: 1.3rem; }
   .qc-value .qc-figure { font-size: 1.3rem; }
 }
@@ -1102,14 +1239,16 @@ details.toc > summary:hover { color: var(--accent); }
     background: var(--bg);
     border-right: 1px solid var(--rule);
   }
-  /* 右缘内阴影：提示「右边还有列」（E4-b，纯 CSS、零 JS） */
-  .table-scroll { box-shadow: inset -14px 0 10px -10px var(--rule-strong); }
+  /* 右缘内阴影：提示「右边还有列」（E4-b，纯 CSS、零 JS）；
+     K1 阴影审计：旧 inset -14px 0 10px -10px 硬阴影 → 压缩到 whisper 级（小模糊、细线色） */
+  .table-scroll { box-shadow: inset -8px 0 6px -8px var(--rule); }
 }
 .compare { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
 /* P2-C6（02-P-17）：表头列名（事件/年份/…）中文为主，去 mono */
 .compare thead th {
+  font-family: var(--sans); /* K1：表头 UI 走 sans */
   font-size: 0.72rem;
-  letter-spacing: 0.05em;
+  letter-spacing: 0; /* 中文列名不加 spacing */
   color: var(--fg-dim);
   text-align: left;
   padding: 0.85rem 0.9rem 0.85rem 0;
@@ -1123,9 +1262,9 @@ details.toc > summary:hover { color: var(--accent); }
 .compare tbody th, .compare tbody td {
   padding: 0.95rem 0.9rem 0.95rem 0;
   vertical-align: top;
-  line-height: 1.65;
+  line-height: 1.55; /* K1：旧 1.65（永不 1.6+） */
 }
-.compare .row-head { font-family: var(--serif); font-size: 1.02rem; font-weight: 700; white-space: nowrap; }
+.compare .row-head { font-family: var(--serif); font-size: 1.02rem; font-weight: 500; white-space: nowrap; }
 .compare .row-head a { text-decoration: none; }
 .compare .row-head a:hover { color: var(--accent); text-decoration: underline; }
 /* P1-12（02-P-13）：行级深链——<tr id>（compare/[table].astro slugify 行首事件名）
@@ -1143,26 +1282,28 @@ details.toc > summary:hover { color: var(--accent); }
 .compare .row-anchor::after { content: "#"; }
 .compare .row-anchor:hover { color: var(--accent); }
 .compare td { color: var(--fg-dim); }
-.compare td strong { color: var(--fg); }
+.compare td strong { color: var(--accent); } /* K1：加粗语义 → 墨蓝（与全局 strong 规则同口径） */
 .compare .col-ev, .compare .ev { width: 2.6rem; text-align: center; }
 .compare .ev {
   font-family: var(--mono);
   font-size: 0.76rem;
   color: var(--fg-dim);
 }
-.compare .ev-A { color: var(--ok); font-weight: 700; }
-/* 证据三级（对照表）：A ok 绿加粗（P2-A1：与目录 ev-A 同色，A=一手证据全站统一绿；
-   accent 只留交互元素，避免「A 级」与「可点」撞语义）/ B 正色加粗 / C 淡字 + 虚线 underline */
-.compare .ev-B { color: var(--fg); font-weight: 600; }
+.compare .ev-A { color: var(--ok); font-weight: 500; }
+/* 证据三级（对照表，K1 单色纪律后）：A 一手=强调墨蓝（--ok 别名，与目录 ev-A 同色；
+   原「全站统一绿」的第二色相已消灭；accent 不再独占交互语义，具体形态 K2 定）/
+   B 正色 500 / C 暖灰 + 虚线 underline */
+.compare .ev-B { color: var(--fg); font-weight: 500; }
 .compare .ev-C { color: var(--fg-dim); text-decoration: underline dotted; text-underline-offset: 0.2em; }
 .compare-foot {
   margin-top: 1.1rem;
+  font-family: var(--sans); /* K1：表尾注记 UI 走 sans */
   font-size: 0.84rem;
-  line-height: 1.8;
+  line-height: 1.55;
   color: var(--fg-dim);
   max-width: var(--measure);
 }
-.chip-static { color: var(--fg-dim); border-style: dashed; cursor: default; }
+.chip-static { color: var(--fg-dim); background: transparent; cursor: default; } /* K2 ⑨：静态 chip 无底无框（原虚线描边随 .chip 去框而删） */
 
 /* ============ 可访问性 / 输出层（N4，纯 CSS 增量，零 JS） ============ */
 /* 锚点跳转平滑（scroll-margin-top 已在 .section 上防 sticky 遮挡） */
@@ -1227,15 +1368,32 @@ html { scroll-behavior: smooth; }
   text-decoration: none;
 }
 .skip-link:focus { left: 0.6rem; top: 0.6rem; }
-/* 打印（N4）：自查表自称「打印版」——隐头尾与交互装饰，外链展开 URL */
+/* 打印（N4）：自查表自称「打印版」——隐头尾与交互装饰，外链展开 URL。
+   K1 · 白底打印变体（Kami 白底打印规范）：画布纯白 #fff；正文墨/卡面/暖底/强调保留
+   （全套浅色令牌在 print 内重申，避免暗色系统下打印出暗色值）。 */
 @media print {
+  :root {
+    --bg: #ffffff;
+    --bg-soft: #efece2;
+    --bg-card: #fbfaf6;
+    --fg: #2b2620;
+    --fg-dim: #6b6459;
+    --rule: #d8d2c4;
+    --rule-strong: #b5ad9c;
+    --accent: #1b365d;
+    --accent-soft: #ebe9de;
+    --on-accent: #ffffff;
+    --ok: var(--accent);
+    --warn: var(--fg);
+    --risk: var(--accent);
+  }
   /* P2-A5（02-P-21）：quick-cards 从隐藏清单移出——4 个速览事实（证据等级/适用时机/关键数字/最大风险）
      恰是打印场景价值最高的内容；强制 2×2（打印宽度下原 4 列会挤）。 */
   .site-header, .site-footer, .section-chips, .backlinks, .concl-bar, .path-chips,
   .entry-nav, .read-progress, .topic-nav, .skip-link, .alias-chip, .nav-drop-menu { display: none !important; }
-  body { background: #fff; color: #000; }
+  body { background: #fff; color: var(--fg); }
   .quick-cards { grid-template-columns: repeat(2, 1fr); }
-  .entry-body a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.75em; color: #555; }
+  .entry-body a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.75em; color: var(--fg-dim); }
   .mod, .section { break-inside: avoid; }
 }
 
@@ -1254,10 +1412,9 @@ html { scroll-behavior: smooth; }
 .outline-card { margin-top: 1.5rem; }
 .sc-bridge {
   font-size: 0.8rem;
-  line-height: 1.8;
+  line-height: 1.55; /* K1：旧 1.8 */
   color: var(--fg-dim);
 }
-.sc-bridge b { color: var(--fg); font-weight: 600; }
 .sc-bridge a { color: var(--fg-dim); }
 .sc-bridge a:hover { color: var(--accent); }
 .sc-end {
@@ -1265,17 +1422,16 @@ html { scroll-behavior: smooth; }
   padding-top: 0.6rem;
   border-top: 1px dashed var(--rule);
   font-size: 0.82rem;
-  line-height: 1.9;
+  line-height: 1.55; /* K1：旧 1.9 */
   color: var(--fg-dim);
 }
-.sc-end b { color: var(--fg); font-weight: 600; }
 .sc-end a { color: var(--fg); }
 .sc-end a:hover { color: var(--accent); }
 .topic-coord {
   max-width: 34em;
   margin: 0.9rem 0 0;
   font-size: 0.78rem;
-  letter-spacing: 0.04em;
+  letter-spacing: 0; /* K1：中文声明句不加 spacing */
   color: var(--fg-dim);
 }
 .topic-layer-note {

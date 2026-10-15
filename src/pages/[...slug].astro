@@ -38,6 +38,15 @@ const deepMin = Math.ceil(cjk / 350);
 //   插件把八问复盘 q-item 的原时间线原地换成指针句，本处在页首渲染常驻 .timeline；
 //   提取不中返回 null，模板不留任何痕迹（诚实降级）。
 const crashTl = extractCrashTimeline(entry.body);
+// K2 结构修复①：时间线默认折叠的 summary 文案——「崩塌时间线 · N 节点 · 峰值点位 → 谷底点位」
+//（N = 节点总数；峰值/谷底点位 = 带日期节点的首/尾日期，取自同一 extractCrashTimeline
+//  提取通道；不足 2 个日期 → 只写「崩塌时间线」，诚实降级）。零 JS，纯构建期计算。
+const tlDates = crashTl ? crashTl.nodes.filter((n) => n.date).map((n) => n.date) : [];
+const tlSummary = crashTl
+  ? tlDates.length >= 2
+    ? `崩塌时间线 · ${crashTl.nodes.length} 节点 · ${tlDates[0]} → ${tlDates[tlDates.length - 1]}`
+    : '崩塌时间线'
+  : '';
 
 const backlinks = backlinksBySlug.get(entry.id) ?? [];
 
@@ -276,19 +285,24 @@ const domainNext =
     )}
 
     {crashTl && (
-      <section class="timeline" aria-label={`${crashTl.label}（页首提层）`}>
-        <h2 class="tl-title">{crashTl.label}</h2>
-        <ol class="tl-list">
-          {
-            crashTl.nodes.map((n) => (
-              <li>
-                {n.date && <b class="t-date">{n.date}</b>}
-                <span class="t-text" set:html={inlineMdLite(n.text)}></span>
-              </li>
-            ))
-          }
-        </ol>
-      </section>
+      /* K2 结构修复①：时间线默认折叠——零 JS <details>（默认关），折叠态只占 1 行
+         summary（「崩塌时间线 · N 节点 · 峰值点位 → 谷底点位」）；展开语言见 global.css .tl-fold。 */
+      <details class="tl-fold">
+        <summary>{tlSummary}</summary>
+        <section class="timeline" aria-label={`${crashTl.label}（页首提层）`}>
+          <h2 class="tl-title">{crashTl.label}</h2>
+          <ol class="tl-list">
+            {
+              crashTl.nodes.map((n) => (
+                <li>
+                  {n.date && <b class="t-date">{n.date}</b>}
+                  <span class="t-text" set:html={inlineMdLite(n.text)}></span>
+                </li>
+              ))
+            }
+          </ol>
+        </section>
+      </details>
     )}
 
     <!-- 长条目页内 TOC（2026-10-17 P0，零 JS）：正文 CJK 字数 ≥ TOC_MIN_CJK（2100）才渲染，

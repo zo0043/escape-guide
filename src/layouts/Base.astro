@@ -47,9 +47,9 @@ const pageTitle = title ? `${title} · ${siteTitle}` : siteTitle;
 const desc =
   description ??
   '把「别亏钱」拆成一条条能照着做的清单：每条写清什么时候用、怎么做、做完得到什么、怎么算过关，以及成本和证据等级。';
-// 主题色跟随系统（N4）：与 global.css 的 --bg 两主题一致
-const themeLight = '#fbfaf6';
-const themeDark = '#14161a';
+// 主题色跟随系统（N4）：与 global.css 的 --bg 两主题一致（K1：温暖纸面/暖墨）
+const themeLight = '#f5f4ed';
+const themeDark = '#211e19';
 ---
 
 <!doctype html>
@@ -57,6 +57,8 @@ const themeDark = '#14161a';
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- K1：TsangerJinKai02 子集字体本地预载（public/fonts/，≈0.52MB，零外部资源） -->
+    <link rel="preload" as="font" type="font/woff2" crossorigin href={`${B}fonts/tscjk-500.woff2`} />
     <title>{pageTitle}</title>
     <meta name="description" content={desc} />
     <meta name="theme-color" content={themeLight} media="(prefers-color-scheme: light)" />

@@ -9,7 +9,9 @@
     "check": "node scripts/check-content.mjs && node scripts/check-compare.mjs",
     "check:canary": "node scripts/check-content.mjs --canary",
     "check:compare": "node scripts/check-compare.mjs",
-    "build": "npm run check && astro build",
+    "check:font": "node scripts/check-font-coverage.mjs",
+    "subset:font": "node scripts/subset-font.mjs",
+    "build": "npm run check && npm run check:font && astro build",
     "build:soft": "astro build",
     "preview": "astro preview"
   },

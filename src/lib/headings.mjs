@@ -53,6 +53,14 @@
 //      常量与断言，两者命中集同形）。断言不中（summary 带尾注 / 无 → / 无日期）
 //      → 整块不转换不移动、原样保留（诚实降级，绝不丢文字）。
 //      原始 .md 一字不动：本批全部视觉去重都发生在这棵 hast 树上，源文件不感知。
+//
+// 2026-10-15 K2 组件重样式批（结构修复③，零 JS、原始 .md 一字不动）：
+//   11. 算例说明耳语化：「怎么做」节内、段落起头为「算例说明」（可带「（可复算）」
+//      尾注、后接半/全角冒号）的 <p> → <details class="note-fold">（默认关）
+//      <summary>算例说明</summary>余文。文字逐字保留：起头标签移进 summary，冒号
+//      及以后原序留在正文——details 序列化文本与原段落逐字一致。起头非「算例说明」
+//      或标签后非冒号的段落不转换（降级安全）。实测 76/76 命中均落在 howto 节内
+//      （含 4 条「算例说明（可复算）：」形态）。
 import { visit } from 'unist-util-visit';
 import { splitSections } from './entries.mjs';
 
@@ -262,6 +270,49 @@ export default function entryHeadings() {
         { type: 'element', tagName: 'p', properties: { class: ['tl-pointer'] }, children: [{ type: 'text', value: TL_POINTER_TEXT }] },
       ];
     });
+
+    // 2d. 算例说明耳语化（K2 结构修复③，2026-10-15，渲染层包裹，原始 .md 一字不动）：
+    //     「怎么做」节（1b 步已包成 section.mod.mod-howto）内、段落起头为「算例说明」
+    //     （可带「（可复算）」尾注、后接半/全角冒号）的 p → 原地换成
+    //     <details class="note-fold">（默认关）<summary>算例说明</summary>余文。
+    //     文字逐字保留：起头标签移进 summary，冒号及以后原序留在正文——details 序列化
+    //     文本与原段落逐字一致。标签后非冒号的段落不转换（降级安全，防「算例说明是…」
+    //     句式误命中）。实测 76/76 命中均落在 howto 节内（2026-10-15）。
+    const NOTE_PREFIX = '算例说明';
+    for (const sec of tree.children) {
+      if (!(sec.type === 'element' && sec.tagName === 'section' &&
+            Array.isArray(sec.properties?.class) && sec.properties.class.includes('mod-howto'))) continue;
+      visit(sec, 'element', (p, index, parent) => {
+        if (p.tagName !== 'p' || !Array.isArray(p.children) || p.children.length === 0) return;
+        const kids = p.children;
+        const first = kids[0];
+        // 起头标签：首个子节点是 strong（任务书口径，当前语料无此形态，防御支）
+        // 或纯文本（语料实际形态：「算例说明：……」/「算例说明（可复算）：……」）
+        let labelRest = null;
+        if (first.type === 'element' && first.tagName === 'strong') {
+          const t = textOf(first);
+          if (!t.startsWith(NOTE_PREFIX)) return;
+          labelRest = t.slice(NOTE_PREFIX.length);
+        } else if (first.type === 'text') {
+          if (!first.value.startsWith(NOTE_PREFIX)) return;
+          labelRest = first.value.slice(NOTE_PREFIX.length);
+        } else return;
+        const restKids = kids.slice(1);
+        const following = restKids.length > 0 && restKids[0].type === 'text' ? String(restKids[0].value) : '';
+        // 标签后必须紧跟冒号（可先有「（可复算）」尾注/空白）——否则降级原样保留
+        if (!/^\s*(（可复算）)?\s*[：:]/.test(labelRest + following)) return;
+        parent.children[index] = {
+          type: 'element',
+          tagName: 'details',
+          properties: { class: ['note-fold'] },
+          children: [
+            { type: 'element', tagName: 'summary', properties: {}, children: [{ type: 'text', value: NOTE_PREFIX }] },
+            ...(labelRest ? [{ type: 'text', value: labelRest }] : []),
+            ...restKids,
+          ],
+        };
+      });
+    }
 
     // 3. 表格卡片化（≥5 列）：挂 table-cards 类 + 每格 data-label。
     //    列名取自 thead 第一行；2–4 列事实表保持现状（E5：折行可接受）。

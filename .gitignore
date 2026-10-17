@@ -10,3 +10,6 @@ dist/
 # AgentTeams 运行时状态（任务/邮箱，非项目内容）
 .agent-teams/
 
+
+# Pi 运行时（本地 plans/会话状态，非项目内容）
+.agents/

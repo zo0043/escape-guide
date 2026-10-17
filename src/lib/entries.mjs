@@ -140,9 +140,13 @@ export function makeEntryIndex(entries) {
     for (const k of entryKeys(e)) {
       const key = normalizeKey(k);
       const prev = index.get(key);
-      if (prev && prev.id !== id) {
+      // 2026-10-18 优化波：守卫须按两种形状解析 id 后再比——原实现直接读 prev.id，
+      // loadEntries 形状只有 slug 没有 id，prev.id 恒 undefined，同一条目内 title/别名
+      // 归一化撞 key（冒号统一后自引用变体）会被误报成跨条目冲突。
+      const prevId = prev ? prev.slug ?? prev.id : undefined;
+      if (prev && prevId !== id) {
         throw new Error(
-          `标题/别名索引冲突：「${k}」同时指向 /${prev.id}/ 与 /${id}/`,
+          `标题/别名索引冲突：「${k}」同时指向 /${prevId}/ 与 /${id}/`,
         );
       }
       index.set(key, e);

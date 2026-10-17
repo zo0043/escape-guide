@@ -10,7 +10,7 @@ export function slugify(input) {
     .replace(/^-+|-+$/g, '');
 }
 
-// 双链目标名归一化：标题与别名都参与匹配，且不区分大小写、忽略空白差异。
+// 全/半角冒号统一（2026-10-18 优化波）：compare.json src 与别名桥不再依赖冒号变体
 export function normalizeKey(input) {
-  return String(input).trim().toLowerCase().replace(/\s+/g, '');
+  return String(input).trim().toLowerCase().replace(/\s+/g, '').replace(/：/g, ':');
 }

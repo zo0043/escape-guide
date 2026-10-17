@@ -68,6 +68,7 @@ const themeDark = '#211e19';
     <link rel="icon" type="image/x-icon" href={`${B}zo0043_16x16.ico`} sizes="16x16" />
     <link rel="icon" type="image/x-icon" href={`${B}zo0043_32x32.ico`} sizes="32x32" />
     <link rel="icon" type="image/png" href={`${B}zo0043.png`} />
+    <link rel="apple-touch-icon" href={`${B}zo0043.png`} />
     <!-- P1-16a（03-T4）：404 页（noindex）不输出自引用 canonical——
          否则 /escape-guide/404/ 会带一个指向自己的 canonical，语义混乱 -->
     {!noindex && <link rel="canonical" href={new URL(Astro.url.pathname, Astro.site)} />}
@@ -150,7 +151,7 @@ const themeDark = '#211e19';
     <footer class="site-footer">
       <div class="wrap">
         <p class="footer-line">
-          🧭 先别亏钱。主站：<a href="https://blog.zero43.top/">blog.zero43.top</a> ·
+          <span aria-hidden="true">🧭</span> 先别亏钱。主站：<a href="https://blog.zero43.top/">blog.zero43.top</a> ·
           <a href={`${B}rss.xml`}>RSS 订阅</a> · <a href={`${B}aliases/`}>别名索引</a>
         </p>
         <p class="footer-fine">

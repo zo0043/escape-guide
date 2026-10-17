@@ -47,6 +47,7 @@
     "Liberation Mono", monospace;
   --header-h: 3.6rem;
   --measure: 38em;
+  color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -86,11 +87,25 @@ body {
 h1 { line-height: 1.15; letter-spacing: 0; }
 h2 { line-height: 1.2; letter-spacing: 0; }
 h3 { line-height: 1.25; letter-spacing: 0; }
+/* 2026-10-17 审计 P2：标题孤行控制（旧浏览器忽略，无副作用） */
+h1 { text-wrap: balance; }
 /* K1 · 加粗语义 → 墨蓝强调：strong/b 全局 weight 500 + accent（含表格/列表/卡片内）。
    个别 UI 元素（如 .t-date 日期、.entry-aliases::before 标签）用更高特异性压回 fg。 */
 strong, b { font-weight: 500; color: var(--accent); }
 a { color: inherit; }
 a:hover { color: var(--accent); }
+/* 2026-10-17 审计 P1-3（WCAG 1.4.1）：内容链接常驻细下划线（.wl 同款），
+   不再只靠 hover 变色/环境语境辨识。.stat-link 除外（块级 stat 卡链接，
+   卡内唯一链接且 hover 已有 accent，下划线会毁 stat 墙）。 */
+.sc-path a, .sc-bridge a, .sc-end a, .chip, .alias-entry-dim a {
+  text-decoration: underline;
+  text-decoration-color: var(--rule-strong);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+/* 2026-10-17 审计 P2：aria-current 视觉化 + 自定义键盘焦点（原靠 UA 默认） */
+a[aria-current] { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .wrap { max-width: 70rem; margin: 0 auto; padding: 0 1.35rem; }
 
 /* ============ 页头 ============ */
@@ -135,7 +150,17 @@ a:hover { color: var(--accent); }
   -webkit-overflow-scrolling: touch;
 }
 .site-nav::-webkit-scrollbar { display: none; }
-.site-nav a { text-decoration: none; color: var(--fg-dim); white-space: nowrap; }
+/* 2026-10-17 审计 P1-7（P-01 后半）：窄屏 nav 不再横滑截断——换到标题下第二行，全部项可见。
+   页头本就 min-height（P0-4 设计预案：换行时长高不裁剪），sticky 偏移体系（concl-bar/
+   section-chips/nav-drop 菜单 top/锚点 scroll-margin）全部跟随 --header-h 变量。
+   注意：--header-h 初值 5.4rem（实测：首页 nav 两行时页头 86px；条目页 nav 一行 78px，
+   取两者较大值使 sticky 偏移与下拉菜单 top 在两种页型下均准确）。 */
+@media (max-width: 639px) {
+  :root { --header-h: 5.4rem; }
+  .site-header .wrap { flex-wrap: wrap; row-gap: 0.1rem; }
+  .site-nav { margin-left: 0; overflow-x: visible; column-gap: 0.9rem; flex-wrap: wrap; row-gap: 0.1rem; }
+}
+.site-nav a { text-decoration: underline; text-decoration-color: var(--rule-strong); text-decoration-thickness: 1px; text-underline-offset: 0.2em; color: var(--fg-dim); white-space: nowrap; }
 .site-nav a:hover { color: var(--accent); }
 /* P1-9（02-P-02）：「域与表」零 JS 下拉——六域/四对照表进全局导航（全站唯一域级入口）。
    菜单用 position:fixed 逃出 .site-nav 的 overflow-x:auto 滚动容器裁剪（t8）：
@@ -214,7 +239,7 @@ a:hover { color: var(--accent); }
 /* K2 ⑪：页脚链接色——默认墨（比页脚 dim 文字略深，链接可辨），hover 墨蓝 */
 .site-footer a { color: var(--fg); text-decoration: none; }
 .site-footer a:hover { color: var(--accent); }
-.footer-fine { margin: 0.6rem 0 0; font-size: 0.76rem; color: var(--fg-dim); opacity: 0.85; max-width: var(--measure); }
+.footer-fine { margin: 0.6rem 0 0; font-size: 0.76rem; color: var(--fg-dim); max-width: var(--measure); }
 /* 首页 stat 墙的 A 级可点（N2：数字墙 → A 级索引入口） */
 .stat-link { text-decoration: none; color: inherit; display: block; }
 .stat-link:hover .stat-num { color: var(--accent); }
@@ -273,13 +298,12 @@ a:hover { color: var(--accent); }
   padding-bottom: 0.2rem;
   scroll-margin-top: calc(var(--header-h) + 0.5rem);
 }
-.alias-gcount { margin-left: 0.5rem; font-size: 0.72rem; font-weight: 400; }
+.alias-gcount { margin-left: 0.5rem; font-size: 0.72rem; font-weight: 500; }
 .a-list { list-style: none; padding: 0; margin: 0; }
 .a-item { padding: 0.7rem 0; border-bottom: 1px solid var(--rule); }
-.a-title { font-weight: 500; text-decoration: none; color: var(--fg); }
+.a-title { font-weight: 500; text-decoration: underline; text-decoration-color: var(--rule-strong); text-decoration-thickness: 1px; text-underline-offset: 0.2em; color: var(--fg); }
 .a-title:hover { color: var(--accent); }
 .a-num { display: block; margin-top: 0.25rem; font-family: var(--sans); font-size: 0.8rem; color: var(--fg-dim); line-height: 1.5; }
-.a-num-empty { opacity: 0.85; }
 /* 404 多出口（N3） */
 .nf-exits { display: flex; flex-wrap: wrap; gap: 0.6rem; justify-content: center; margin-top: 1.4rem; }
 /* P2-C7（02-P-15）：404 静态版「你是不是要找」——推荐入口行沿用 nav-drop 菜单的链接语言
@@ -370,7 +394,7 @@ a:hover { color: var(--accent); }
 }
 
 /* ============ 区块通用 ============ */
-.section { margin-top: 5rem; }
+.section { margin-top: 5rem; scroll-margin-top: calc(var(--header-h) + 0.5rem); }
 .section-label {
   font-family: var(--mono);
   font-size: 0.74rem;
@@ -399,7 +423,7 @@ a:hover { color: var(--accent); }
 }
 .start-card:hover { border-top-color: var(--accent); }
 .sc-num { font-family: var(--mono); font-size: 0.74rem; letter-spacing: 0.12em; color: var(--accent); }
-.sc-title { font-family: var(--serif); font-size: 1.28rem; font-weight: 500; text-decoration: none; }
+.sc-title { font-family: var(--serif); font-size: 1.28rem; font-weight: 500; text-decoration: underline; text-decoration-color: var(--rule-strong); text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
 .sc-title:hover { color: var(--accent); }
 .sc-desc { font-size: 0.9rem; line-height: 1.55; color: var(--fg-dim); }
 .sc-path {
@@ -470,7 +494,7 @@ details[open] > summary.dom-summary::after { content: "－"; }
 .dir-list { list-style: none; margin: 0; padding: 0 0 1.4rem; display: grid; gap: 0; }
 @media (min-width: 880px) { .dir-list { grid-template-columns: 1fr 1fr; column-gap: 2.4rem; } }
 .dir-item { padding: 0.62rem 0; border-bottom: 1px dashed var(--rule); }
-.dir-link { font-size: 0.97rem; font-weight: 500; text-decoration: none; }
+.dir-link { font-size: 0.97rem; font-weight: 500; text-decoration: underline; text-decoration-color: var(--rule-strong); text-decoration-thickness: 1px; text-underline-offset: 0.2em; }
 .dir-kicker { margin: 0.18rem 0 0; font-size: 0.82rem; line-height: 1.55; color: var(--fg-dim); }
 .dir-ev {
   display: inline-block;
@@ -609,7 +633,7 @@ details[open] > summary.dom-summary::after { content: "－"; }
   margin-top: 0.35rem;
   font-family: var(--sans);
   font-size: 0.78rem;
-  font-weight: 400;
+  font-weight: 500;
   letter-spacing: 0;
   line-height: 1.5;
   color: var(--fg-dim);
@@ -645,8 +669,8 @@ details[open] > summary.dom-summary::after { content: "－"; }
   vertical-align: 0.18em;
   white-space: nowrap;
 }
-/* P2-C6：.ev-flag 单独点名 0.7rem（对照表行内更紧凑） */
-.ev-flag { font-size: 0.7rem; }
+/* P2-C6：.ev-flag 单独点名（对照表行内更紧凑）；2026-10-17 审计：0.7→0.76，与 .compare .ev 同规格（全站最小功能字号 ≥0.76rem） */
+.ev-flag { font-size: 0.76rem; }
 /* ============ sticky 结论条（U-1，P2） ============
    长条目（20+ 屏）滚动任何时刻抬头可见：哪条 / 什么等级 / 最重要的数 / 最大风险。
    z-20 与 section-chips 同档；nav-drop 29 与页头 30 仍在其上（展开下拉不遮挡）。
@@ -809,6 +833,9 @@ article:has(.concl-bar) { --concl-h: 2.2rem; }
   line-height: 1.55; /* K1：旧 1.7（永不 1.6+） */
 }
 .entry-body pre code { background: none; border: none; padding: 0; }
+/* 2026-10-17 审计 P2：shiki github-light 纯白底与「永不用纯白画布」气质冲突——
+   浅色主题下改暖底（!important 压 inline style；下方暗色 media 源序在后，暗色仍生效）。 */
+.astro-code { background-color: var(--bg-soft) !important; }
 /* U6/E6：shiki 双主题的暗色切换。astro.config.mjs 配了
    themes: { light: 'github-light', dark: 'github-dark' }，构建期 inline style
    带 --shiki-dark* 变量（亮色值直写、暗色值走变量）；这里补
@@ -1256,7 +1283,7 @@ details.toc > summary:hover { color: var(--accent); }
   white-space: nowrap;
   vertical-align: bottom;
 }
-.compare tbody tr { border-top: 1px solid var(--rule); }
+.compare tbody tr { border-top: 1px solid var(--rule-strong); } /* 2026-10-17 审计 P2：行线 --rule→--rule-strong（浅色 #d8d2c4 对比≈1.3:1 不可见；与暗色行线可感度对齐） */
 .compare tbody tr:first-child { border-top: none; }
 .compare tbody tr:hover { background: var(--bg-soft); }
 .compare tbody th, .compare tbody td {
@@ -1275,8 +1302,8 @@ details.toc > summary:hover { color: var(--accent); }
   text-decoration: none;
   color: var(--fg-dim);
   font-family: var(--mono);
-  font-size: 0.72rem;
-  font-weight: 400;
+  font-size: 0.78rem;
+  font-weight: 500;
   margin-left: 0.4rem;
 }
 .compare .row-anchor::after { content: "#"; }
@@ -1386,6 +1413,7 @@ html { scroll-behavior: smooth; }
     --ok: var(--accent);
     --warn: var(--fg);
     --risk: var(--accent);
+    color-scheme: light;
   }
   /* P2-A5（02-P-21）：quick-cards 从隐藏清单移出——4 个速览事实（证据等级/适用时机/关键数字/最大风险）
      恰是打印场景价值最高的内容；强制 2×2（打印宽度下原 4 列会挤）。 */
@@ -1394,6 +1422,12 @@ html { scroll-behavior: smooth; }
   body { background: #fff; color: var(--fg); }
   .quick-cards { grid-template-columns: repeat(2, 1fr); }
   .entry-body a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.75em; color: var(--fg-dim); }
+  /* 2026-10-17 审计 P2：打印白页上 shiki 代码块改浅底深字（原 github-dark 深底浅字违和） */
+  .astro-code, .astro-code span { color: #24292e !important; background-color: #ffffff !important; }
+  /* 2026-10-17 审计 P1-2：闭合 <details> 内容打印展开——零 JS 约束下唯一解
+     （UA 对闭合 details 的隐藏规则可被作者 !important 覆盖；display:initial
+     对 table/ol/li/section 各还原初始显示，实证 2008 条 q-item/tl-fold/note-fold 不再丢失）。 */
+  details > :not(summary) { display: initial !important; }
   .mod, .section { break-inside: avoid; }
 }
 

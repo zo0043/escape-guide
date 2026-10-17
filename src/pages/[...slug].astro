@@ -27,7 +27,7 @@ const d = entry.data;
 // 正文 CJK 字数（entry.body 已不含 frontmatter；countCjk 再剥代码块）驱动两个阈值：
 // · TOC_MIN_CJK（2100）：达到 → quick-cards 后渲染页内 TOC（details 默认关，
 //   数据 extractToc，id 与 headings.mjs 插件同一映射；取值依据见该文件注释）；
-// · 深潜 chip：N = ceil(CJK/350)，N≥10（≈3151 字）→ meta 行「{layer} · 约 N 分钟」（2026-10-17 修：用真实 layer，原固定「档案」会误标理念/执行层长条目）。
+// · 深潜 chip：N = ceil(CJK/350)，N≥10（≈3151 字）→ meta 行「约 N 分钟」（layer 名由同行前置 layer-tag 承载，chip 不重复；2026-10-17 修：原固定「档案」会误标理念/执行层长条目）。
 const cjk = countCjk(entry.body);
 const toc = cjk >= TOC_MIN_CJK ? extractToc(entry.body) : [];
 const deepMin = Math.ceil(cjk / 350);
@@ -197,7 +197,8 @@ const domainNext =
 ---
 
 <Base title={d.title} description={d.description}>
-  <article>
+  <!-- 2026-10-17 审计 P1-5：:has 降级——老 Safari<16.4/Firefox<121 上 article:has(.concl-bar) 不生效时，内联变量兜底（concl-bar 在本模板无条件渲染，恒真） -->
+  <article style="--concl-h: 2.2rem">
     <!-- U-6（P2-C4）：纯 CSS 阅读进度条——animation-timeline: scroll() 驱动（现代 Chrome/Edge
          及 @supports 通过的浏览器），不支持的浏览器元素在场但无背景/动画 → 观感上无进度条。
          零 JS；贴顶 3px 细线 z-40（高于页头 30），pointer-events:none 不抢点击。
@@ -214,9 +215,9 @@ const domainNext =
         {d.checked && <>来源核对于 {d.checked.toISOString().slice(0, 10)}</>}
         {d.disputed && <> · <b>本站标注：结论存在争议</b></>}
         {layer && <> · <span class={`layer-tag layer-${layer}`}>{layer}</span></>}
-        {deepMin >= 10 && <> · <span class="depth-chip">{layer} · 约 {deepMin} 分钟</span></>}
+        {deepMin >= 10 && <> · <span class="depth-chip">约 {deepMin} 分钟</span></>}
       </p>
-      {d.aliases?.length > 0 && <p class="entry-aliases">又称：{d.aliases.join(' · ')}</p>}
+      {d.aliases?.length > 0 && <p class="entry-aliases">{d.aliases.join(' · ')}</p>}
     </header>
 
     <!-- U-1（P2）：sticky 结论条——长条目滚动任何时刻抬头可见「哪条/什么等级/最重要的数/最大风险」。
@@ -265,7 +266,7 @@ const domainNext =
     </div>
 
     {d.crash && (
-      <div class="crash-strip" aria-label="崩盘数字条">
+      <div class="crash-strip" role="img" aria-label="崩盘数字条">
         <div class="cs-col">
           <span class="cs-label">峰值</span>
           <span class="cs-num">{d.crash.peak.v}</span>

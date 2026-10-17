@@ -211,6 +211,30 @@ export default function entryHeadings() {
       tree.children = out;
     }
 
+    // 1c. 2026-10-18：来源段（mod-source）内的代码块 = 重跑命令，渲染层默认折叠。
+    // 读者流不暴露原始抓取命令（与 about.md 格式合同的「来源 = 原始出处 + 核对日期」对齐）；
+    // 展开后与条目 markdown 原文逐字一致，A 级「可复算」纪律不受影响——命令本体仍在仓库条目内，
+    // 闸门 check-content 只查 markdown 源、不查渲染层。@media print 的 details 展开规则
+    // （2026-10-17 P1-2）保证打印/存档时命令完整在场。怎么做段的代码块（工具条目教学内容）
+    // 不在折叠范围——那里的命令是内容本体。
+    visit(tree, 'element', (section) => {
+      if (section.tagName !== 'section') return;
+      const cls = section.properties?.class;
+      if (!Array.isArray(cls) || !cls.includes('mod-source')) return;
+      visit(section, 'element', (pre, index, parent) => {
+        if (pre.tagName !== 'pre' || parent?.tagName === 'details') return;
+        parent.children[index] = {
+          type: 'element',
+          tagName: 'details',
+          properties: { class: ['rrun-fold'] },
+          children: [
+            { type: 'element', tagName: 'summary', properties: {}, children: [{ type: 'text', value: '重跑命令（展开核对）' }] },
+            pre,
+          ],
+        };
+      });
+    });
+
     // 2. 四段式标记：p 的第一个子节点是 strong 且文字命中 → 结构化
     visit(tree, 'element', (node) => {
       if (node.tagName !== 'p' || !Array.isArray(node.children)) return;

@@ -653,6 +653,20 @@ details[open] > summary.dom-summary::after { content: "－"; }
 .qc-more[open] > summary::before { content: "▾ "; }
 .qc-more summary:hover { color: var(--accent); }
 .qc-more p { margin: 0.4rem 0 0; }
+/* 2026-10-18：来源段重跑命令默认折叠（.qc-more 同款语言；0.76rem 对齐全站最小功能字号下限） */
+.rrun-fold { margin-top: 0.35rem; }
+.rrun-fold summary {
+  cursor: pointer;
+  font-family: var(--sans);
+  font-size: 0.76rem;
+  color: var(--fg-dim);
+  list-style: none;
+}
+.rrun-fold summary::-webkit-details-marker { display: none; }
+.rrun-fold summary::before { content: "▸ "; }
+.rrun-fold[open] > summary::before { content: "▾ "; }
+.rrun-fold summary:hover { color: var(--accent); }
+.rrun-fold pre { margin: 0.35rem 0 0; }
 /* 争议小标：速览卡证据等级格 + 对照表证据格共用一套视觉 */
 .qc-flag, .ev-flag {
   display: inline-block;
@@ -1425,9 +1439,12 @@ html { scroll-behavior: smooth; }
   /* 2026-10-17 审计 P2：打印白页上 shiki 代码块改浅底深字（原 github-dark 深底浅字违和） */
   .astro-code, .astro-code span { color: #24292e !important; background-color: #ffffff !important; }
   /* 2026-10-17 审计 P1-2：闭合 <details> 内容打印展开——零 JS 约束下唯一解
-     （UA 对闭合 details 的隐藏规则可被作者 !important 覆盖；display:initial
-     对 table/ol/li/section 各还原初始显示，实证 2008 条 q-item/tl-fold/note-fold 不再丢失）。 */
-  details > :not(summary) { display: initial !important; }
+     （UA 对闭合 details 的隐藏规则可被作者 !important 覆盖）。
+     2026-10-18 修正：display:initial 会把 pre/ul/ol 落到 inline（初始值），打印时列表/代码块塌成行内流；
+     改按标签显式还原自然显示（pre/ul/ol/section/div/p→block，li→list-item，table→table）。 */
+  details > :not(summary) { display: block !important; }
+  details > li:not(summary) { display: list-item !important; }
+  details > table:not(summary) { display: table !important; }
   .mod, .section { break-inside: avoid; }
 }
 
